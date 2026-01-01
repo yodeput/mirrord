@@ -1,0 +1,67 @@
+{
+    "name": "mirrord",
+    "version": "1.0.0",
+    "description": ".mirrord Desktop Client",
+    "main": "dist/main/index.js",
+    "author": "yodeput@gmail.com",
+    "license": "MIT",
+    "scripts": {
+        "build:renderer": "bunx esbuild renderer/scripts/device/app.ts --bundle --outfile=renderer/scripts/device/app.js --platform=browser && bunx esbuild renderer/scripts/home/app.ts --bundle --outfile=renderer/scripts/home/app.js --platform=browser",
+        "build:css": "bunx tailwindcss -i renderer/styles/tailwind.css -o renderer/styles/tailwind.out.css",
+        "watch:renderer-device": "bunx esbuild renderer/scripts/device/app.ts --bundle --outfile=renderer/scripts/device/app.js --platform=browser --watch",
+        "watch:renderer-home": "bunx esbuild renderer/scripts/home/app.ts --bundle --outfile=renderer/scripts/home/app.js --platform=browser --watch",
+        "watch:css": "bunx tailwindcss -i renderer/styles/tailwind.css -o renderer/styles/tailwind.out.css --watch",
+        "dev": "bun run build:renderer && bun run build:css && bunx tsc && bunx electron .",
+        "dev:watch": "bun run build:renderer && bun run build:css && bunx concurrently \"bunx tsc -w\" \"bunx electron .\" \"bun run watch:renderer-device\" \"bun run watch:renderer-home\" \"bun run watch:css\"",
+        "build": "bunx tsc && bun run build:renderer && bun run build:css",
+        "start": "electron .",
+        "pack": "electron-builder --dir",
+        "dist": "electron-builder"
+    },
+    "dependencies": {
+        "broadway-player": "^0.1.1",
+        "electron-log": "^5.0.0",
+        "jmuxer": "^2.1.0"
+    },
+    "devDependencies": {
+        "@types/node": "^20.10.0",
+        "autoprefixer": "^10.4.23",
+        "concurrently": "^8.2.2",
+        "electron": "28",
+        "electron-builder": "^24.9.1",
+        "esbuild": "^0.27.2",
+        "postcss": "^8.5.6",
+        "tailwindcss": "3.4.17",
+        "typescript": "^5.3.3"
+    },
+    "build": {
+        "appId": "com.mirrord.desktop",
+        "productName": "mirrord",
+        "directories": {
+            "output": "out"
+        },
+        "files": [
+            "dist/**/*",
+            "renderer/**/*",
+            "resources/**/*"
+        ],
+        "mac": {
+            "target": "dmg",
+            "icon": "resources/icon.icns"
+        },
+        "win": {
+            "target": "nsis",
+            "icon": "resources/icon.ico"
+        },
+        "linux": {
+            "target": "AppImage",
+            "icon": "resources/icon.png"
+        },
+        "extraResources": [
+            {
+                "from": "resources/scrcpy-server",
+                "to": "resources/scrcpy-server"
+            }
+        ]
+    }
+}
