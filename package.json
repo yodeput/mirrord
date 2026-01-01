@@ -2,21 +2,45 @@
     "name": "mirrord",
     "version": "1.0.0",
     "description": ".mirrord Desktop Client",
-    "main": "dist/main/index.js",
-    "author": "yodeput@gmail.com",
+    "author": "Yogi Dewansyah <yodeput@gmail.com>",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/yodeput/mirrord.git"
+    },
     "license": "MIT",
+    "main": "dist/main/index.js",
     "scripts": {
         "build:renderer": "npx esbuild renderer/scripts/device/app.ts --bundle --outfile=renderer/scripts/device/app.js --platform=browser && npx esbuild renderer/scripts/home/app.ts --bundle --outfile=renderer/scripts/home/app.js --platform=browser",
         "build:css": "npx tailwindcss -i renderer/styles/tailwind.css -o renderer/styles/tailwind.out.css",
         "watch:renderer-device": "npx esbuild renderer/scripts/device/app.ts --bundle --outfile=renderer/scripts/device/app.js --platform=browser --watch",
         "watch:renderer-home": "npx esbuild renderer/scripts/home/app.ts --bundle --outfile=renderer/scripts/home/app.js --platform=browser --watch",
         "watch:css": "npx tailwindcss -i renderer/styles/tailwind.css -o renderer/styles/tailwind.out.css --watch",
-        "dev": "yarn run build:renderer && yarn run build:css && npx tsc && npx electron .",
-        "dev:watch": "yarn run build:renderer && yarn run build:css && npx concurrently \"npx tsc -w\" \"npx electron .\" \"yarn run watch:renderer-device\" \"yarn run watch:renderer-home\" \"yarn run watch:css\"",
-        "build": "npx tsc && yarn run build:renderer && yarn run build:css",
+        "dev": "npm run build:renderer && npm run build:css && npx tsc && npx electron .",
+        "dev:watch": "npm run build:renderer && npm run build:css && npx concurrently \"npx tsc -w\" \"npx electron .\" \"npm run watch:renderer-device\" \"npm run watch:renderer-home\" \"npm run watch:css\"",
+        "build": "npx tsc && npm run build:renderer && npm run build:css",
         "start": "electron .",
-        "pack": "electron-builder --dir",
-        "dist": "electron-builder"
+        "publish": "node build-config/build.js target=dir publish=always",
+        "publish:win:setup:x64": "node build-config/build.js target=win arch=x64 type=setup publish=always",
+        "publish:win:setup:x86": "node build-config/build.js target=win arch=x86 type=setup publish=always",
+        "publish:win:setup:arm64": "node build-config/build.js target=win arch=arm64 type=setup publish=always",
+        "publish:win:setup:x86_64": "node build-config/build.js target=win arch=x86_64 type=setup publish=always",
+        "publish:win:portable": "npm run publish:win:portable:x86_64 && npm run publish:win:portable:x64 && npm run publish:win:portable:x86",
+        "publish:win:portable:x86_64": "node build-config/build.js target=win arch=x86_64 type=portable publish=always",
+        "publish:win:portable:x64": "node build-config/build.js target=win arch=x64 type=portable publish=always",
+        "publish:win:portable:x86": "node build-config/build.js target=win arch=x86 type=portable publish=always",
+        "publish:win:7z:x64": "node build-config/build.js target=win arch=x64 type=green publish=always",
+        "publish:win:7z:arm64": "node build-config/build.js target=win arch=arm64 type=green publish=always",
+        "publish:win7:setup:x64": "node build-config/build.js target=win arch=x64 type=win7_setup publish=always",
+        "publish:win7:7z:x64": "node build-config/build.js target=win arch=x64 type=win7_green publish=always",
+        "publish:win7:7z:x86": "node build-config/build.js target=win arch=x86 type=win7_green publish=always",
+        "publish:mac:dmg": "node build-config/build.js target=mac arch=x64 type=dmg publish=always",
+        "publish:mac:dmg:arm64": "node build-config/build.js target=mac arch=arm64 type=dmg publish=always",
+        "publish:linux:deb:amd64": "node build-config/build.js target=linux arch=x64 type=deb publish=always",
+        "publish:linux:deb:arm64": "node build-config/build.js target=linux arch=arm64 type=deb publish=always",
+        "publish:linux:deb:armv7l": "node build-config/build.js target=linux arch=armv7l type=deb publish=always",
+        "publish:linux:appImage": "node build-config/build.js target=linux arch=x64 type=appImage publish=always",
+        "publish:linux:rpm": "node build-config/build.js target=linux arch=x64 type=rpm publish=always",
+        "publish:linux:pacman": "node build-config/build.js target=linux arch=x64 type=pacman publish=always"
     },
     "dependencies": {
         "electron-log": "^5.0.0"
@@ -26,40 +50,10 @@
         "autoprefixer": "^10.4.23",
         "concurrently": "^8.2.2",
         "electron": "28",
-        "electron-builder": "^24.9.1",
+        "electron-builder": "^26.3.2",
         "esbuild": "^0.27.2",
         "postcss": "^8.5.6",
         "tailwindcss": "3.4.17",
         "typescript": "^5.3.3"
-    },
-    "build": {
-        "appId": "com.mirrord.desktop",
-        "productName": "mirrord",
-        "directories": {
-            "output": "out"
-        },
-        "files": [
-            "dist/**/*",
-            "renderer/**/*",
-            "resources/**/*"
-        ],
-        "mac": {
-            "target": "dmg",
-            "icon": "resources/icon.icns"
-        },
-        "win": {
-            "target": "nsis",
-            "icon": "resources/icon.ico"
-        },
-        "linux": {
-            "target": "AppImage",
-            "icon": "resources/icon.png"
-        },
-        "extraResources": [
-            {
-                "from": "resources/scrcpy-server",
-                "to": "resources/scrcpy-server"
-            }
-        ]
     }
 }

@@ -25,6 +25,8 @@
     "node_modules",
     "dist",
     "out",
-    "renderer"
+    "renderer",
+    "mirrord-tauri",
+    "mirrord-tauri/src"
   ]
 }
