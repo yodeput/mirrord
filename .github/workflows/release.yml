@@ -46,7 +46,7 @@ jobs:
 
       - name: Generate file MD5
         run: |
-          cd build
+          cd out
           Get-FileHash *.exe,*.7z -Algorithm MD5 | Format-List
 
   Windows_7:
@@ -87,7 +87,7 @@ jobs:
 
       - name: Generate file MD5
         run: |
-          cd build
+          cd out
           Get-FileHash *.exe,*.7z -Algorithm MD5 | Format-List
 
   Mac:
@@ -127,7 +127,7 @@ jobs:
 
       - name: Generate file MD5
         run: |
-          cd build
+          cd out
           md5 *.dmg
 
   Linux:
@@ -171,5 +171,5 @@ jobs:
 
       - name: Generate file MD5
         run: |
-          cd build
+          cd out
           md5sum *.deb *.rpm *.pacman *.AppImage

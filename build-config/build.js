@@ -107,17 +107,26 @@ const createTarget = {
   },
   mac(arch, type) {
     const options = { ...macOptions }
-    options.artifactName = `\${productName}-v\${version}-mac-${arch}.\${ext}`
+    options.artifactName = `\${productName}-v\${version}-mac-${arch}${type ? '-' + type : ''}.\${ext}`
     return options
   },
   linux(arch, type) {
     const options = { ...linuxOptions }
-    options.artifactName = `\${productName}-v\${version}-linux-${arch}.\${ext}`
+    let archName = arch
+    if (arch === 'x64' || arch === 'x86_64') archName = 'amd64'
+    options.artifactName = `\${productName}-v\${version}-linux-${archName}${type ? '-' + type : ''}.\${ext}`
     return options
   },
 }
 
-const build = async (target, arch, type) => {
+/**
+ *
+ * @param {'win' | 'mac' | 'linux' | 'dir'} target 构建目标平台
+ * @param {'x86_64' | 'x64' | 'x86' | 'arm64' | 'armv7l'} arch 包架构
+ * @param {*} type 包类型
+ * @param {'onTagOrDraft' | 'always' | 'never'} publishType 发布类型
+ */
+const build = async (target, arch, type, publishType) => {
   if (target === 'dir') {
     await builder.build({
       dir: true,
@@ -130,7 +139,9 @@ const build = async (target, arch, type) => {
   
   await builder.build({
     [target]: [type === 'setup' && target === 'win' ? 'nsis' : (type || 'default')],
-    x64: arch === 'x64',
+    publish: publishType || 'never',
+    x64: arch === 'x64' || arch === 'x86_64',
+    ia32: arch === 'x86' || arch === 'ia32',
     arm64: arch === 'arm64',
     armv7l: arch === 'armv7l',
     config: { ...baseOptions, ...platformOptions },
@@ -145,11 +156,11 @@ process.argv.slice(2).forEach(arg => {
 })
 
 if (!params.target) {
-  console.log('Usage: node build.js target=[win|mac|linux|dir] arch=[x64|arm64] type=[setup|portable|green]')
+  console.log('Usage: node build.js target=[win|mac|linux|dir] arch=[x64|arm64] type=[setup|portable|green] publish=[always|onTagOrDraft|never]')
   process.exit(1)
 }
 
-build(params.target, params.arch, params.type)
+build(params.target, params.arch, params.type, params.publish)
   .then(() => console.log('Build completed!'))
   .catch(err => {
     console.error('Build failed:', err)
