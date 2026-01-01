@@ -121,7 +121,7 @@ const createTarget = {
  *
  * @param {'win' | 'mac' | 'linux' | 'dir'} target 构建目标平台
  * @param {'x86_64' | 'x64' | 'x86' | 'arm64' | 'armv7l'} arch 包架构
- * @param {*} packageType 包类型
+ * @param {*} type 包类型
  * @param {'onTagOrDraft' | 'always' | 'never'} publishType 发布类型
  */
 
@@ -134,11 +134,11 @@ const build = async (target, arch, type, publishType) => {
     return
   }
 
-  const targetInfo = createTarget[target](arch, packageType)
+  const targetInfo = createTarget[target](arch, type)
   
   await builder.build({
     ...targetInfo.buildOptions,
-    [target]: [type === 'setup' && target === 'win' ? 'nsis' : (type || 'default')],
+    publish: publishType ?? 'never',
     x64: arch == 'x64' || arch == 'x86_64',
     ia32: arch == 'x86' || arch == 'x86_64',
     arm64: arch == 'arm64',
