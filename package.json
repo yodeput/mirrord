@@ -6,22 +6,20 @@
     "author": "yodeput@gmail.com",
     "license": "MIT",
     "scripts": {
-        "build:renderer": "bunx esbuild renderer/scripts/device/app.ts --bundle --outfile=renderer/scripts/device/app.js --platform=browser && bunx esbuild renderer/scripts/home/app.ts --bundle --outfile=renderer/scripts/home/app.js --platform=browser",
-        "build:css": "bunx tailwindcss -i renderer/styles/tailwind.css -o renderer/styles/tailwind.out.css",
-        "watch:renderer-device": "bunx esbuild renderer/scripts/device/app.ts --bundle --outfile=renderer/scripts/device/app.js --platform=browser --watch",
-        "watch:renderer-home": "bunx esbuild renderer/scripts/home/app.ts --bundle --outfile=renderer/scripts/home/app.js --platform=browser --watch",
-        "watch:css": "bunx tailwindcss -i renderer/styles/tailwind.css -o renderer/styles/tailwind.out.css --watch",
-        "dev": "bun run build:renderer && bun run build:css && bunx tsc && bunx electron .",
-        "dev:watch": "bun run build:renderer && bun run build:css && bunx concurrently \"bunx tsc -w\" \"bunx electron .\" \"bun run watch:renderer-device\" \"bun run watch:renderer-home\" \"bun run watch:css\"",
-        "build": "bunx tsc && bun run build:renderer && bun run build:css",
+        "build:renderer": "npx esbuild renderer/scripts/device/app.ts --bundle --outfile=renderer/scripts/device/app.js --platform=browser && npx esbuild renderer/scripts/home/app.ts --bundle --outfile=renderer/scripts/home/app.js --platform=browser",
+        "build:css": "npx tailwindcss -i renderer/styles/tailwind.css -o renderer/styles/tailwind.out.css",
+        "watch:renderer-device": "npx esbuild renderer/scripts/device/app.ts --bundle --outfile=renderer/scripts/device/app.js --platform=browser --watch",
+        "watch:renderer-home": "npx esbuild renderer/scripts/home/app.ts --bundle --outfile=renderer/scripts/home/app.js --platform=browser --watch",
+        "watch:css": "npx tailwindcss -i renderer/styles/tailwind.css -o renderer/styles/tailwind.out.css --watch",
+        "dev": "yarn run build:renderer && yarn run build:css && npx tsc && npx electron .",
+        "dev:watch": "yarn run build:renderer && yarn run build:css && npx concurrently \"npx tsc -w\" \"npx electron .\" \"yarn run watch:renderer-device\" \"yarn run watch:renderer-home\" \"yarn run watch:css\"",
+        "build": "npx tsc && yarn run build:renderer && yarn run build:css",
         "start": "electron .",
         "pack": "electron-builder --dir",
         "dist": "electron-builder"
     },
     "dependencies": {
-        "broadway-player": "^0.1.1",
-        "electron-log": "^5.0.0",
-        "jmuxer": "^2.1.0"
+        "electron-log": "^5.0.0"
     },
     "devDependencies": {
         "@types/node": "^20.10.0",

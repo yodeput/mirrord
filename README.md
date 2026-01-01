@@ -1,4 +1,6 @@
-# .mirrord
+<p style="text-align: center;"><img src="./resources/mirrd-bannner.png?raw=tru" style="zoom:;" /></p>
+
+# **.mirrord**
 
 A high-performance Android device mirroring application built with Electron, powered by the **scrcpy** protocol. Designed for developers and power users who demand speed, style, and advanced control.
 
@@ -28,11 +30,36 @@ A high-performance Android device mirroring application built with Electron, pow
 - **Soft Keyboard Control**: Toggle the Android virtual keyboard ON or OFF permanently to keep your screen clear of obstructions.
 - **Game Mode**: Map your physical keys (WASD, Space, etc.) to on-screen touch points for gaming or testing.
 
+### Screenshot
+
+<table>
+  <tr>
+    <td>
+    <p style="text-align: center;">
+      <img src="./resources/screenshot/ss-1.png?raw=true" alt="Main Screen" width="600"/>
+       </p>
+    </td>
+    <td>
+   <p style="text-align: center;">
+      <img src="./resources/screenshot/ss-2.png?raw=true" alt="Device Screen" width="600"/>
+       </p>
+    </td>
+  </tr>
+  <tr>
+    <td>
+     Main Screen
+    </td>
+    <td>
+      Device Screen
+    </td>
+  </tr>
+</table>
+
 ## Getting Started
 
 ### Prerequisites
 
-- [Bun](https://bun.sh) (Recommended package manager)
+- [yarn](https://yarnpkg.com) (Recommended package manager)
 - Node.js & NPM
 - Android Device with **USB Debugging** enabled.
 
@@ -41,12 +68,11 @@ A high-performance Android device mirroring application built with Electron, pow
 1. Clone the repository
 2. Install dependencies:
    ```bash
-   bun install
+   yarn install
    ```
 3. Build the assets:
    ```bash
-   bun run build:renderer
-   bun run build:css
+   yarn run build
    ```
 4. Launch the application:
    ```bash
