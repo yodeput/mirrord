@@ -5,6 +5,9 @@ on:
     branches:
       - master
 
+permissions:
+  contents: write
+
 env:
   IS_CI: 'true'
 
@@ -41,7 +44,7 @@ jobs:
           npm run publish:win:setup:arm64
           npm run publish:win:setup:x64
         env:
-          GITHUB_TOKEN: ${{ secrets.GH_SECRET }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Generate file MD5
         run: |
@@ -81,7 +84,7 @@ jobs:
           npm run publish:win7:7z:x64
           npm run publish:win7:7z:x86
         env:
-          GITHUB_TOKEN: ${{ secrets.GH_SECRET }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Generate file MD5
         run: |
@@ -120,7 +123,7 @@ jobs:
           npm run publish:mac:dmg
           npm run publish:mac:dmg:arm64
         env:
-          GITHUB_TOKEN: ${{ secrets.GH_SECRET }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Generate file MD5
         run: |
@@ -163,7 +166,7 @@ jobs:
           npm run publish:linux:rpm
           npm run publish:linux:pacman
         env:
-          GITHUB_TOKEN: ${{ secrets.GH_SECRET }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Generate file MD5
         run: |
