@@ -17,7 +17,6 @@ yarn-error.log*
 bun.lockb
 bun.lock
 yarn.lock
-package-lock.json
 # OS generated files
 .DS_Store
 .DS_Store?
