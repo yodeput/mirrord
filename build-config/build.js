@@ -24,6 +24,13 @@ const baseOptions = {
     },
   ],
   asar: true,
+  publish: [
+    {
+      provider: 'github',
+      owner: 'yodeput',
+      repo: 'mirrord',
+    },
+  ],
 }
 
 const winOptions = {

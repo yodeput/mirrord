@@ -42,7 +42,6 @@ jobs:
           npm run publish:win:setup:x64
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          BT_TOKEN: ${{ secrets.BT_TOKEN }}
 
       - name: Generate file MD5
         run: |
@@ -83,7 +82,6 @@ jobs:
           npm run publish:win7:7z:x86
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          BT_TOKEN: ${{ secrets.BT_TOKEN }}
 
       - name: Generate file MD5
         run: |
@@ -123,7 +121,6 @@ jobs:
           npm run publish:mac:dmg:arm64
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          BT_TOKEN: ${{ secrets.BT_TOKEN }}
 
       - name: Generate file MD5
         run: |
@@ -167,7 +164,6 @@ jobs:
           npm run publish:linux:pacman
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          BT_TOKEN: ${{ secrets.BT_TOKEN }}
 
       - name: Generate file MD5
         run: |
