@@ -852,7 +852,7 @@ class DeviceApp {
     
     try {
       // 1. Stop current
-      await window.mirrorControl.stopMirror(this.serial);
+      await window.mirrorControl.stopMirror(this.serial, { keepWindowOpen: true });
       
       // Clean up OLD listeners to prevent duplicate data feed
       this.cleanupFunctions.forEach(fn => fn());

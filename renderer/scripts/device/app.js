@@ -1198,7 +1198,7 @@ Connect to: ${ip.trim()}:5555`);
       this.hasReceivedVideo = false;
       this.showLoading("Optimizing stream configuration...");
       try {
-        await window.mirrorControl.stopMirror(this.serial);
+        await window.mirrorControl.stopMirror(this.serial, { keepWindowOpen: true });
         this.cleanupFunctions.forEach((fn) => fn());
         this.cleanupFunctions = [];
         if (this.jmuxer) {

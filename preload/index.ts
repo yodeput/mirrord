@@ -14,7 +14,7 @@ const api = {
     forceBaseline?: boolean;
   }) => ipcRenderer.invoke('device:start-mirror', serial, options),
   
-  stopMirror: (serial: string) => ipcRenderer.invoke('device:stop-mirror', serial),
+  stopMirror: (serial: string, options?: { keepWindowOpen?: boolean }) => ipcRenderer.invoke('device:stop-mirror', serial, options),
   
   getDeviceInfo: (serial: string) => ipcRenderer.invoke('device:get-info', serial),
   
