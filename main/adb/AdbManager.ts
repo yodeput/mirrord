@@ -1,6 +1,6 @@
 import { app } from 'electron';
 import { EventEmitter } from 'events';
-import { spawn, exec } from 'child_process';
+import { spawn, exec, execFile } from 'child_process';
 import * as os from 'os';
 import * as path from 'path';
 import * as fs from 'fs';
@@ -159,9 +159,10 @@ export class AdbManager extends EventEmitter {
     return new Promise((resolve, reject) => {
       const cmdArgs = serial ? ['-s', serial, ...args] : args;
       
-      exec(`"${this.adbPath}" ${cmdArgs.join(' ')}`, {
+      execFile(this.adbPath, cmdArgs, {
         timeout: 30000,
         encoding: 'utf8',
+        windowsHide: true,
       }, (error, stdout, stderr) => {
         if (error) {
           reject(new Error(stderr || error.message));

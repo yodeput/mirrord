@@ -20,10 +20,11 @@ const options = {
     '!node_modules/**/*'
   ],
   asar: true,
+  electronLanguages: ['en-US'],
   extraResources: [
     {
       from: 'resources/scrcpy-server',
-      to: 'resources/scrcpy-server',
+      to: 'scrcpy-server.jar',
     },
   ],
   publish: [
