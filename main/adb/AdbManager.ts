@@ -1,8 +1,11 @@
+import { app } from 'electron';
 import { EventEmitter } from 'events';
 import { spawn, exec } from 'child_process';
 import * as os from 'os';
 import * as path from 'path';
 import * as fs from 'fs';
+import * as https from 'https';
+import { downloadPlatformTools } from '../utils/PlatformToolsDownloader';
 
 /**
  * Device information
@@ -42,6 +45,9 @@ export class AdbManager extends EventEmitter {
     const possiblePaths = [
       // Environment ANDROID_HOME (most reliable if set)
       process.env.ANDROID_HOME ? path.join(process.env.ANDROID_HOME, 'platform-tools', os.platform() === 'win32' ? 'adb.exe' : 'adb') : '',
+
+      // Bundled ADB (prod & dev)
+      this.getBundledAdbPath(),
       
       // macOS - Homebrew (Intel & Apple Silicon)
       '/usr/local/bin/adb',
@@ -75,6 +81,27 @@ export class AdbManager extends EventEmitter {
     }
 
     return 'adb';
+  }
+
+  /**
+   * Get the path to the bundled ADB executable
+   */
+  private getBundledAdbPath(): string {
+    const platform = os.platform();
+    let platformDir = '';
+    
+    if (platform === 'win32') platformDir = 'win';
+    else if (platform === 'darwin') platformDir = 'mac';
+    else if (platform === 'linux') platformDir = 'linux';
+    else return '';
+
+    const adbBin = platform === 'win32' ? 'adb.exe' : 'adb';
+    
+    // In production/dev, we now download to userData
+    const userDataPath = app.getPath('userData');
+    
+    // Path: <userData>/platform-tools/<platform>/platform-tools/adb
+    return path.join(userDataPath, 'platform-tools', platformDir, 'platform-tools', adbBin); 
   }
 
   /**
@@ -132,7 +159,7 @@ export class AdbManager extends EventEmitter {
     return new Promise((resolve, reject) => {
       const cmdArgs = serial ? ['-s', serial, ...args] : args;
       
-      exec(`${this.adbPath} ${cmdArgs.join(' ')}`, {
+      exec(`"${this.adbPath}" ${cmdArgs.join(' ')}`, {
         timeout: 30000,
         encoding: 'utf8',
       }, (error, stdout, stderr) => {
@@ -422,5 +449,26 @@ export class AdbManager extends EventEmitter {
   async disconnect(serialOrIp: string): Promise<void> {
     await this.exec(['disconnect', serialOrIp]);
     this.scanDevices();
+  }
+
+  /**
+   * Download and install platform tools
+   */
+  async downloadPlatformTools(onStatus?: (status: string, progress: number) => void): Promise<boolean> {
+    try {
+        const success = await downloadPlatformTools(onStatus);
+        
+        if (success) {
+            // Update ADB path
+            const newPath = this.getBundledAdbPath();
+            this.setAdbPath(newPath);
+            console.log(`[AdbManager] Setup complete. ADB Path: ${newPath}`);
+        }
+        
+        return success;
+    } catch (error) {
+        console.error('[AdbManager] Failed to run downloader:', error);
+        return false;
+    }
   }
 }

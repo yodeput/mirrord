@@ -73,6 +73,14 @@ const api = {
   
   checkAdbStatus: (pathToCheck?: string) => ipcRenderer.invoke('adb:check-status', pathToCheck),
   
+  downloadPlatformTools: () => ipcRenderer.invoke('adb:download-tools'),
+  
+  onDownloadProgress: (callback: (status: string, progress: number) => void) => {
+    const listener = (_event: any, { status, progress }: { status: string, progress: number }) => callback(status, progress);
+    ipcRenderer.on('adb:download-progress', listener);
+    return () => ipcRenderer.removeListener('adb:download-progress', listener);
+  },
+  
   shell: (serial: string, command: string) => ipcRenderer.invoke('adb:shell', serial, command),
   
   // Wireless Connection

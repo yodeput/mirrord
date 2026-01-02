@@ -284,6 +284,15 @@ export function registerIpcHandlers(
     }
   )
 
+  // Download platform tools
+  ipcMain.handle('adb:download-tools', async (event): Promise<boolean> => {
+    return adbManager.downloadPlatformTools((status, progress) => {
+        if (!event.sender.isDestroyed()) {
+            event.sender.send('adb:download-progress', { status, progress });
+        }
+    })
+  })
+
   // Execute ADB shell command
   ipcMain.handle(
     'adb:shell',

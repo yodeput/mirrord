@@ -229,40 +229,65 @@ class HomeApp {
 
     if (btnClose && modal) {
       btnClose.addEventListener('click', () => {
-        this.closeSettingsModal();
+        if (modal.dataset.cancellable !== 'false') {
+            this.closeSettingsModal();
+        }
       });
     }
 
     if (btnSave && inputPath) {
       btnSave.addEventListener('click', async () => {
+        // ... (existing save logic)
         const path = inputPath.value.trim();
+        // ...
+      });
+    }
+
+    // Download Button Logic
+    const btnDownload = document.getElementById('btn-download-adb');
+    const progressContainer = document.getElementById('download-progress-container');
+    const progressBar = document.getElementById('download-progress-bar');
+    const statusText = document.getElementById('download-status-text');
+    const percentageText = document.getElementById('download-percentage');
+
+    if (btnDownload) {
+      btnDownload.addEventListener('click', async () => {
+        // Show progress UI
+        progressContainer?.classList.remove('hidden');
+        btnDownload.classList.add('hidden'); // Hide button while downloading
         
-        // Disable button during validation
-        const btn = btnSave as HTMLButtonElement;
-        const originalText = btn.innerText;
-        btn.innerText = 'Verifying...';
-        btn.disabled = true;
+        // Listen for progress
+        const cleanupListener = window.mirrorControl.onDownloadProgress((status: string, progress: number) => {
+             if (statusText) statusText.innerText = status;
+             if (percentageText) percentageText.innerText = `${progress}%`;
+             if (progressBar) progressBar.style.width = `${progress}%`;
+        });
 
         try {
-          const isValid = await window.mirrorControl.checkAdbStatus(path);
-          if (isValid) {
-            const success = await window.mirrorControl.setAdbPath(path);
-            if (success) {
-              this.updateAdbStatusIndicator(true, 'ADB Detected & Saved');
-              setTimeout(() => this.closeSettingsModal(), 1000);
-              this.refreshDevices();
-            } else {
-              this.updateAdbStatusIndicator(false, 'Failed to save settings');
-            }
+          const success = await window.mirrorControl.downloadPlatformTools();
+          
+          if (success) {
+            const newPath = await window.mirrorControl.getAdbPath();
+            inputPath.value = newPath;
+            
+            this.updateAdbStatusIndicator(true, 'ADB Downloaded & Installed');
+            modal!.dataset.cancellable = 'true';
+            
+            setTimeout(() => this.closeSettingsModal(), 1500);
+            this.refreshDevices();
           } else {
-            this.updateAdbStatusIndicator(false, 'Invalid ADB Path. Not detected.');
-            // Shake effect for feedback
-            modal?.querySelector('.modal-content')?.classList.add('animate-shake');
-            setTimeout(() => modal?.querySelector('.modal-content')?.classList.remove('animate-shake'), 500);
+            throw new Error('Download failed');
           }
+        } catch (error) {
+          console.error(error);
+          this.updateAdbStatusIndicator(false, 'Download Failed');
+          alert('Download failed. Please try again.');
+          
+          // Reset UI
+          progressContainer?.classList.add('hidden');
+          btnDownload.classList.remove('hidden');
         } finally {
-          btn.innerText = originalText;
-          btn.disabled = false;
+            cleanupListener();
         }
       });
     }
@@ -279,16 +304,30 @@ class HomeApp {
         const isValid = await window.mirrorControl.checkAdbStatus(path);
         if (isValid) {
           this.updateAdbStatusIndicator(true, 'Valid ADB Path');
+          modal!.dataset.cancellable = 'true';
+          
+          // Restore UI
+          const settingsActions = document.getElementById('settings-actions');
+          const btnDownload = document.getElementById('btn-download-adb');
+          if (settingsActions) settingsActions.classList.remove('hidden');
+          if (btnDownload) btnDownload.classList.add('hidden');
+          
         } else {
           this.updateAdbStatusIndicator(false, 'Invalid Path');
+          // Don't necessarily lock if they are just typing, but strictly speaking if it's invalid we might want to.
+          // For UX, it's better to only lock on initial open if invalid.
         }
       });
     }
 
     // Close on overlay click
     modal?.addEventListener('click', (e) => {
-      if (e.target === modal) {
+      if (e.target === modal && modal.dataset.cancellable !== 'false') {
         this.closeSettingsModal();
+      } else if (e.target === modal) {
+         // Shake effect if blocked
+         modal.querySelector('.modal-content')?.classList.add('animate-shake');
+         setTimeout(() => modal.querySelector('.modal-content')?.classList.remove('animate-shake'), 500);
       }
     });
   }
@@ -296,16 +335,36 @@ class HomeApp {
   private async openSettingsModal(): Promise<void> {
     const modal = document.getElementById('modal-settings');
     const inputPath = document.getElementById('input-adb-path') as HTMLInputElement;
+    const btnDownload = document.getElementById('btn-download-adb');
+    const settingsActions = document.getElementById('settings-actions');
+    const inputContainer = inputPath.parentElement;
     
     if (modal && inputPath) {
       // Load current path
       const currentPath = await window.mirrorControl.getAdbPath();
-      // Only show value if it's NOT the default 'adb' - otherwise keep it empty for placeholder hint
       inputPath.value = (currentPath === 'adb' || !currentPath) ? '' : currentPath;
       
       // Initial status check
       const isValid = await window.mirrorControl.checkAdbStatus();
       this.updateAdbStatusIndicator(isValid, isValid ? 'ADB Detected' : 'ADB Not Found');
+      
+      // Lock dismissal if invalid
+      modal.dataset.cancellable = isValid ? 'true' : 'false';
+
+      // Show/Hide Elements
+      if (btnDownload && settingsActions) {
+          if (!isValid) {
+              // Missing ADB State
+              btnDownload.classList.remove('hidden');
+              settingsActions.classList.add('hidden'); // Hide Save/Cancel buttons
+              if (inputContainer) inputContainer.classList.add('opacity-50', 'pointer-events-none'); // Disable manual input to focus on download
+          } else {
+              // Valid ADB State
+              btnDownload.classList.add('hidden');
+              settingsActions.classList.remove('hidden');
+              if (inputContainer) inputContainer.classList.remove('opacity-50', 'pointer-events-none');
+          }
+      }
       
       modal.classList.add('open');
       inputPath.focus();
@@ -363,12 +422,16 @@ class HomeApp {
   }
 
   private async renderDeviceList(): Promise<void> {
-    this.deviceList.innerHTML = '';
-    
-    if (this.devices.size === 0) return;
+    if (this.devices.size === 0) {
+        this.deviceList.innerHTML = '';
+        return;
+    }
 
     const showSerialRaw = await window.mirrorControl.getSetting('showSerial');
     const showSerial = showSerialRaw ?? true;
+
+    // Clear list NOW, right before appending, to avoid race conditions with async calls above
+    this.deviceList.innerHTML = '';
 
     for (const device of this.devices.values()) {
         const card = this.createDeviceCard(device);
