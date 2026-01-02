@@ -45,6 +45,8 @@ function createMainWindow(): void {
     icon: path.join(__dirname, '../../resources/icon.png'),
   });
 
+  mainWindow.setMenu(null);
+
   // Load main page
   mainWindow.loadFile(path.join(__dirname, '../../renderer/index.html'));
 
@@ -89,6 +91,8 @@ export function createDeviceWindow(device: DeviceInfo): BrowserWindow {
     trafficLightPosition: { x: 15, y: 17 },
     icon: path.join(__dirname, '../../resources/icon.png'),
   });
+
+  deviceWindow.setMenu(null);
 
   // Pass device info to renderer via URL params
   const indexPath = path.join(__dirname, '../../renderer/device.html');

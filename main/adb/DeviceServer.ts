@@ -50,12 +50,24 @@ export class DeviceServer {
     }
     
     // In production, use app resources
-    const prodPath = path.join(process.resourcesPath || app.getAppPath(), 'resources/scrcpy-server');
-    if (fs.existsSync(prodPath)) {
-      return prodPath;
+    // We check for .jar first (new fix), then no-extension (old fix), then legacy
+    const possiblePaths = [
+      path.join(process.resourcesPath || app.getAppPath(), 'scrcpy-server.jar'),
+      path.join(process.resourcesPath || app.getAppPath(), 'scrcpy-server'),
+      path.join(process.resourcesPath || app.getAppPath(), 'resources/scrcpy-server')
+    ];
+
+    for (const p of possiblePaths) {
+      if (fs.existsSync(p)) {
+        // Ensure it is a file, not a directory
+        const stat = fs.statSync(p);
+        if (stat.isFile()) {
+           return p;
+        }
+      }
     }
 
-    throw new Error(`scrcpy-server not found (checked: ${devPath}, ${prodPath})`);
+    throw new Error(`scrcpy-server not found (checked: ${devPath}, ${possiblePaths.join(', ')})`);
   }
 
   /**
