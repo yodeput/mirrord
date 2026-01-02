@@ -55,6 +55,12 @@ A high-performance Android device mirroring application built with Electron, pow
   </tr>
 </table>
 
+## Roadmap / TODO
+
+- [ ] Screenshot
+- [ ] Audio routing from source
+- [ ] Video Recording
+
 ## Getting Started
 
 ### Prerequisites
