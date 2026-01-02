@@ -1,6 +1,6 @@
 import { app, shell } from 'electron';
 import * as https from 'https';
-import * as semver from 'semver';
+import semver from 'semver';
 
 export interface UpdateInfo {
   available: boolean;
