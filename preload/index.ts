@@ -7,6 +7,8 @@ const api = {
   // Device management
   getDevices: () => ipcRenderer.invoke('adb:get-devices'),
   
+  getAppVersion: () => ipcRenderer.invoke('app:get-version'),
+  
   startMirror: (serial: string, options?: {
     bitrate?: number;
     maxSize?: number;

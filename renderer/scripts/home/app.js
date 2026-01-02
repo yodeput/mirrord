@@ -42,6 +42,15 @@
         console.warn("[HomeApp] ADB not detected, showing settings");
         this.openSettingsModal();
       }
+      try {
+        const version = await window.mirrorControl.getAppVersion();
+        const versionEl = document.getElementById("app-version");
+        if (versionEl) {
+          versionEl.textContent = `v${version}`;
+        }
+      } catch (e) {
+        console.error("Failed to get app version", e);
+      }
     }
     setupEventListeners() {
       document.getElementById("btn-restart-adb")?.addEventListener("click", async () => {

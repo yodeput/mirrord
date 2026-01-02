@@ -610,6 +610,10 @@ video {
   bottom: 0.125rem;
 }
 
+.left-0 {
+  left: 0px;
+}
+
 .left-0\.5 {
   left: 0.125rem;
 }
@@ -677,6 +681,10 @@ video {
 
 .ml-auto {
   margin-left: auto;
+}
+
+.mr-1 {
+  margin-right: 0.25rem;
 }
 
 .mt-1 {
@@ -1160,6 +1168,10 @@ video {
 
 .p-16 {
   padding: 4rem;
+}
+
+.p-2 {
+  padding: 0.5rem;
 }
 
 .p-5 {

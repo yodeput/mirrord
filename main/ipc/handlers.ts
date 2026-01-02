@@ -1,4 +1,4 @@
-import { ipcMain, BrowserWindow } from 'electron'
+import { ipcMain, BrowserWindow, app } from 'electron'
 import { AdbManager, DeviceInfo } from '../adb/AdbManager'
 import { DeviceServer } from '../adb/DeviceServer'
 import { DeviceConnection } from '../adb/DeviceConnection'
@@ -50,6 +50,11 @@ export function registerIpcHandlers(
   if (savedAdbPath) {
     adbManager.setAdbPath(savedAdbPath)
   }
+
+  // Get app version
+  ipcMain.handle('app:get-version', () => {
+    return app.getVersion();
+  });
 
   // Get list of devices
   ipcMain.handle('adb:get-devices', async (): Promise<DeviceInfo[]> => {
