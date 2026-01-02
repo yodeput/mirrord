@@ -1,6 +1,6 @@
 {
     "name": "mirrord",
-    "version": "1.0.0",
+    "version": "0.0.1",
     "description": ".mirrord Desktop Client",
     "author": "Yogi Dewansyah <yodeput@gmail.com>",
     "repository": {
@@ -43,14 +43,17 @@
         "publish:linux:pacman": "node build-config/build.js target=linux arch=x64 type=pacman publish=always"
     },
     "dependencies": {
-        "electron-log": "^5.0.0"
+        "electron-log": "^5.0.0",
+        "semver": "^7.7.3"
     },
     "devDependencies": {
         "@types/node": "^20.10.0",
+        "@types/semver": "^7.7.1",
         "autoprefixer": "^10.4.23",
         "concurrently": "^8.2.2",
         "electron": "28",
         "electron-builder": "^26.3.2",
+        "electron-reload": "^2.0.0-alpha.1",
         "esbuild": "^0.27.2",
         "postcss": "^8.5.6",
         "tailwindcss": "3.4.17",

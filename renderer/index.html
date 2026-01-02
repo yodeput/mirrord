@@ -33,7 +33,7 @@
       </div>
 
       <!-- Main Content -->
-      <main class="flex-1 flex flex-col max-w-4xl mx-auto w-full px-6 overflow-hidden">
+      <main class="flex-1 flex flex-col max-w-4xl mx-auto w-full px-6 pb-14 overflow-hidden">
         
         <!-- Top: Scrollable Devices Area -->
         <div class="flex-1 overflow-y-auto py-6 pr-1 custom-scrollbar">
@@ -105,10 +105,56 @@
 
       </main>
 
-      <!-- Footer -->
-      <footer class="py-4 bg-gray-50 border-gray-100">
-        <p class="text-[10px] text-center text-gray-400 uppercase tracking-widest font-medium">.mirrord v1.0.0</p>
-      </footer>
+  
+    <!-- Footer -->
+    <div class="fixed bottom-0 left-0 w-full p-2 text-center text-md text-gray-400 bg-white/80 backdrop-blur-sm border-t border-gray-100 flex justify-center items-center gap-2 z-30">
+      <span class="font-medium">.mirrord</span>
+      <span id="app-version">v...</span>
+      <span class="text-gray-300">|</span>
+      <button id="btn-check-update" class="cursor-pointer flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded-md">
+        <span>Check for Updates</span>
+      </button>
+    </div>s
+
+    <!-- Update Available Modal -->
+    <div id="modal-update" class="fixed inset-0 z-50 flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300">
+      <div class="absolute inset-0 bg-black/40 backdrop-blur-sm"></div>
+      <div class="relative bg-white rounded-2xl shadow-xl w-[400px] p-6 transform scale-95 translate-y-4 transition-all duration-300">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+          </div>
+          <div>
+            <h3 class="text-lg font-semibold text-gray-900">Update Available</h3>
+            <p class="text-sm text-gray-500" id="update-version-text">A new version is available.</p>
+          </div>
+        </div>
+        
+        <p class="text-sm text-gray-600 mb-6 bg-gray-50 p-3 rounded-lg max-h-32 overflow-y-auto" id="update-release-notes">
+           <!-- Release notes -->
+        </p>
+        
+        <!-- Update Progress (Hidden by default) -->
+        <div id="update-progress-container" class="hidden mb-6">
+            <div class="flex justify-between text-xs mb-1">
+                <span class="text-gray-600 font-medium">Downloading...</span>
+                <span id="update-percentage" class="text-gray-500">0%</span>
+            </div>
+            <div class="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
+                <div id="update-progress-bar" class="bg-blue-600 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+            </div>
+        </div>
+        
+        <div class="flex justify-end gap-3" id="update-actions">
+          <button id="btn-skip-update" class="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors">Skip</button>
+          <!-- <button id="btn-download-update" class="px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors border border-blue-100">Download (External)</button> -->
+          <button id="btn-install-update" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors shadow-sm">Update Now</button>
+        </div>
+      </div>
     </div>
 
     <script src="scripts/home/app.js"></script>
@@ -155,9 +201,31 @@
           </div>
         </div>
 
-        <div class="flex justify-end gap-3 mt-6">
-          <button id="btn-close-settings" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">Cancel</button>
-          <button id="btn-save-settings" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors">Save Path</button>
+        <div class="flex flex-col mt-6">
+          <!-- Download Progress UI (Hidden by default) -->
+          <div id="download-progress-container" class="hidden mb-4">
+              <div class="flex justify-between text-sm mb-1">
+                  <span id="download-status-text" class="text-gray-600 font-medium">Preparing...</span>
+                  <span id="download-percentage" class="text-gray-500">0%</span>
+              </div>
+              <div class="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
+                  <div id="download-progress-bar" class="bg-blue-600 h-2.5 rounded-full transition-all duration-300" style="width: 0%"></div>
+              </div>
+          </div>
+
+          <button id="btn-download-adb" class="hidden w-full px-4 py-3 text-base font-medium text-white bg-blue-600 rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 flex items-center justify-center gap-2">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            Download Platform Tools
+          </button>
+          
+          <div class="flex gap-3 ml-auto mt-4" id="settings-actions">
+            <button id="btn-close-settings" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">Cancel</button>
+            <button id="btn-save-settings" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors">Save Path</button>
+          </div>
         </div>
       </div>
     </div>

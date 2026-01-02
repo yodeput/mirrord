@@ -7,6 +7,22 @@ const api = {
   // Device management
   getDevices: () => ipcRenderer.invoke('adb:get-devices'),
   
+  getAppVersion: () => ipcRenderer.invoke('app:get-version'),
+  
+  checkForUpdates: () => ipcRenderer.invoke('app:check-for-updates'),
+  
+  downloadUpdate: (url: string) => ipcRenderer.invoke('app:download-update', url),
+  
+  installUpdate: (filePath: string) => ipcRenderer.invoke('app:install-update', filePath),
+  
+  onUpdateDownloadProgress: (callback: (progress: number) => void) => {
+    const listener = (_event: any, progress: number) => callback(progress);
+    ipcRenderer.on('app:update-download-progress', listener);
+    return () => ipcRenderer.removeListener('app:update-download-progress', listener);
+  },
+  
+  openExternal: (url: string) => ipcRenderer.invoke('app:open-external', url),
+  
   startMirror: (serial: string, options?: {
     bitrate?: number;
     maxSize?: number;
@@ -72,6 +88,14 @@ const api = {
   setAdbPath: (newPath: string) => ipcRenderer.invoke('adb:set-path', newPath),
   
   checkAdbStatus: (pathToCheck?: string) => ipcRenderer.invoke('adb:check-status', pathToCheck),
+  
+  downloadPlatformTools: () => ipcRenderer.invoke('adb:download-tools'),
+  
+  onDownloadProgress: (callback: (status: string, progress: number) => void) => {
+    const listener = (_event: any, { status, progress }: { status: string, progress: number }) => callback(status, progress);
+    ipcRenderer.on('adb:download-progress', listener);
+    return () => ipcRenderer.removeListener('adb:download-progress', listener);
+  },
   
   shell: (serial: string, command: string) => ipcRenderer.invoke('adb:shell', serial, command),
   

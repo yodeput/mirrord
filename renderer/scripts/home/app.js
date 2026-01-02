@@ -42,8 +42,138 @@
         console.warn("[HomeApp] ADB not detected, showing settings");
         this.openSettingsModal();
       }
+      try {
+        const version = await window.mirrorControl.getAppVersion();
+        const versionEl = document.getElementById("app-version");
+        if (versionEl) {
+          versionEl.textContent = `v${version}`;
+        }
+      } catch (e) {
+        console.error("Failed to get app version", e);
+      }
+      this.checkForUpdates(false);
+    }
+    async checkForUpdates(manual = false) {
+      const btnCheck = document.getElementById("btn-check-update");
+      const originalText = btnCheck?.innerHTML;
+      if (manual && btnCheck) {
+        btnCheck.innerHTML = '<span class="text-white font-medium min-w-[120px] text-center">Checking...</span>';
+        btnCheck.style.pointerEvents = "none";
+        btnCheck.classList.add("opacity-70");
+      }
+      try {
+        console.log("[HomeApp] Checking for updates...");
+        const update = await window.mirrorControl.checkForUpdates();
+        if (update.available) {
+          console.log("[HomeApp] Update available:", update);
+          this.showUpdateModal(update);
+          if (btnCheck) {
+            btnCheck.innerHTML = '<span class="text-white font-medium min-w-[120px] text-center animate-pulse">Update Available</span>';
+            btnCheck.onclick = () => this.showUpdateModal(update);
+          }
+        } else {
+          console.log("[HomeApp] No updates found.");
+          if (btnCheck) {
+            btnCheck.innerHTML = "<span>Check for Updates</span>";
+          }
+          if (manual) {
+            alert(`You are on the latest version (v${update.version}).`);
+          }
+        }
+      } catch (e) {
+        console.error("[HomeApp] Update check failed:", e);
+        if (manual) alert("Failed to check for updates.");
+        if (btnCheck) btnCheck.innerHTML = "<span>Check for Updates</span>";
+      } finally {
+        if (manual && btnCheck) {
+          btnCheck.style.pointerEvents = "auto";
+          btnCheck.classList.remove("opacity-70");
+        }
+      }
+    }
+    showUpdateModal(update) {
+      const modal = document.getElementById("modal-update");
+      const versionText = document.getElementById("update-version-text");
+      const notesText = document.getElementById("update-release-notes");
+      const btnSkip = document.getElementById("btn-skip-update");
+      const btnDownload = document.getElementById("btn-download-update");
+      const btnInstall = document.getElementById("btn-install-update");
+      const progressContainer = document.getElementById("update-progress-container");
+      const progressBar = document.getElementById("update-progress-bar");
+      const percentageText = document.getElementById("update-percentage");
+      const actionsContainer = document.getElementById("update-actions");
+      if (modal && versionText && notesText) {
+        versionText.textContent = `Version ${update.version} is available.`;
+        notesText.textContent = update.releaseNotes || "No release notes provided.";
+        if (progressContainer) progressContainer.classList.add("hidden");
+        if (actionsContainer) actionsContainer.classList.remove("hidden");
+        modal.classList.remove("opacity-0", "pointer-events-none");
+        const content = modal.querySelector("div.relative");
+        content?.classList.remove("scale-95", "translate-y-4");
+        if (btnDownload) {
+          btnDownload.onclick = () => {
+            if (update.url) {
+              window.mirrorControl.openExternal(update.url);
+            }
+            this.closeUpdateModal();
+          };
+        }
+        if (btnInstall) {
+          if (!update.downloadUrl) {
+            btnInstall.innerText = "Unavailable";
+            btnInstall.title = "Direct download not available for this OS";
+            btnInstall.classList.add("opacity-50", "cursor-not-allowed");
+            btnInstall.onclick = null;
+          } else {
+            btnInstall.innerText = "Install Now";
+            btnInstall.title = "";
+            btnInstall.classList.remove("opacity-50", "cursor-not-allowed");
+            btnInstall.onclick = async () => {
+              if (progressContainer) progressContainer.classList.remove("hidden");
+              if (actionsContainer) actionsContainer.classList.add("hidden");
+              const cleanup = window.mirrorControl.onUpdateDownloadProgress((percent) => {
+                if (progressBar) progressBar.style.width = `${percent}%`;
+                if (percentageText) percentageText.innerText = `${percent}%`;
+              });
+              try {
+                console.log(`[HomeApp] Downloading update from: ${update.downloadUrl}`);
+                const result = await window.mirrorControl.downloadUpdate(update.downloadUrl);
+                if (result.success) {
+                  console.log("[HomeApp] Update downloaded:", result.filePath);
+                  await window.mirrorControl.installUpdate(result.filePath);
+                  this.closeUpdateModal();
+                } else {
+                  throw new Error(result.error);
+                }
+              } catch (e) {
+                console.error("Update failed:", e);
+                alert("Failed to download update.");
+                this.closeUpdateModal();
+              } finally {
+                cleanup();
+              }
+            };
+          }
+        }
+        if (btnSkip) {
+          btnSkip.onclick = () => {
+            this.closeUpdateModal();
+          };
+        }
+      }
+    }
+    closeUpdateModal() {
+      const modal = document.getElementById("modal-update");
+      if (modal) {
+        modal.classList.add("opacity-0", "pointer-events-none");
+        const content = modal.querySelector("div.relative");
+        content?.classList.add("scale-95", "translate-y-4");
+      }
     }
     setupEventListeners() {
+      document.getElementById("btn-check-update")?.addEventListener("click", () => {
+        this.checkForUpdates(true);
+      });
       document.getElementById("btn-restart-adb")?.addEventListener("click", async () => {
         try {
           this.isFirstLoad = true;
@@ -173,35 +303,50 @@
       }
       if (btnClose && modal) {
         btnClose.addEventListener("click", () => {
-          this.closeSettingsModal();
+          if (modal.dataset.cancellable !== "false") {
+            this.closeSettingsModal();
+          }
         });
       }
       if (btnSave && inputPath) {
         btnSave.addEventListener("click", async () => {
           const path = inputPath.value.trim();
-          const btn = btnSave;
-          const originalText = btn.innerText;
-          btn.innerText = "Verifying...";
-          btn.disabled = true;
+        });
+      }
+      const btnDownload = document.getElementById("btn-download-adb");
+      const progressContainer = document.getElementById("download-progress-container");
+      const progressBar = document.getElementById("download-progress-bar");
+      const statusText = document.getElementById("download-status-text");
+      const percentageText = document.getElementById("download-percentage");
+      if (btnDownload) {
+        btnDownload.addEventListener("click", async () => {
+          progressContainer?.classList.remove("hidden");
+          btnDownload.classList.add("hidden");
+          const cleanupListener = window.mirrorControl.onDownloadProgress((status, progress) => {
+            if (statusText) statusText.innerText = status;
+            if (percentageText) percentageText.innerText = `${progress}%`;
+            if (progressBar) progressBar.style.width = `${progress}%`;
+          });
           try {
-            const isValid = await window.mirrorControl.checkAdbStatus(path);
-            if (isValid) {
-              const success = await window.mirrorControl.setAdbPath(path);
-              if (success) {
-                this.updateAdbStatusIndicator(true, "ADB Detected & Saved");
-                setTimeout(() => this.closeSettingsModal(), 1e3);
-                this.refreshDevices();
-              } else {
-                this.updateAdbStatusIndicator(false, "Failed to save settings");
-              }
+            const success = await window.mirrorControl.downloadPlatformTools();
+            if (success) {
+              const newPath = await window.mirrorControl.getAdbPath();
+              inputPath.value = newPath;
+              this.updateAdbStatusIndicator(true, "ADB Downloaded & Installed");
+              modal.dataset.cancellable = "true";
+              setTimeout(() => this.closeSettingsModal(), 1500);
+              this.refreshDevices();
             } else {
-              this.updateAdbStatusIndicator(false, "Invalid ADB Path. Not detected.");
-              modal?.querySelector(".modal-content")?.classList.add("animate-shake");
-              setTimeout(() => modal?.querySelector(".modal-content")?.classList.remove("animate-shake"), 500);
+              throw new Error("Download failed");
             }
+          } catch (error) {
+            console.error(error);
+            this.updateAdbStatusIndicator(false, "Download Failed");
+            alert("Download failed. Please try again.");
+            progressContainer?.classList.add("hidden");
+            btnDownload.classList.remove("hidden");
           } finally {
-            btn.innerText = originalText;
-            btn.disabled = false;
+            cleanupListener();
           }
         });
       }
@@ -215,25 +360,48 @@
           const isValid = await window.mirrorControl.checkAdbStatus(path);
           if (isValid) {
             this.updateAdbStatusIndicator(true, "Valid ADB Path");
+            modal.dataset.cancellable = "true";
+            const settingsActions = document.getElementById("settings-actions");
+            const btnDownload2 = document.getElementById("btn-download-adb");
+            if (settingsActions) settingsActions.classList.remove("hidden");
+            if (btnDownload2) btnDownload2.classList.add("hidden");
           } else {
             this.updateAdbStatusIndicator(false, "Invalid Path");
           }
         });
       }
       modal?.addEventListener("click", (e) => {
-        if (e.target === modal) {
+        if (e.target === modal && modal.dataset.cancellable !== "false") {
           this.closeSettingsModal();
+        } else if (e.target === modal) {
+          modal.querySelector(".modal-content")?.classList.add("animate-shake");
+          setTimeout(() => modal.querySelector(".modal-content")?.classList.remove("animate-shake"), 500);
         }
       });
     }
     async openSettingsModal() {
       const modal = document.getElementById("modal-settings");
       const inputPath = document.getElementById("input-adb-path");
+      const btnDownload = document.getElementById("btn-download-adb");
+      const settingsActions = document.getElementById("settings-actions");
+      const inputContainer = inputPath.parentElement;
       if (modal && inputPath) {
         const currentPath = await window.mirrorControl.getAdbPath();
         inputPath.value = currentPath === "adb" || !currentPath ? "" : currentPath;
         const isValid = await window.mirrorControl.checkAdbStatus();
         this.updateAdbStatusIndicator(isValid, isValid ? "ADB Detected" : "ADB Not Found");
+        modal.dataset.cancellable = isValid ? "true" : "false";
+        if (btnDownload && settingsActions) {
+          if (!isValid) {
+            btnDownload.classList.remove("hidden");
+            settingsActions.classList.add("hidden");
+            if (inputContainer) inputContainer.classList.add("opacity-50", "pointer-events-none");
+          } else {
+            btnDownload.classList.add("hidden");
+            settingsActions.classList.remove("hidden");
+            if (inputContainer) inputContainer.classList.remove("opacity-50", "pointer-events-none");
+          }
+        }
         modal.classList.add("open");
         inputPath.focus();
       }
@@ -282,10 +450,13 @@
       }
     }
     async renderDeviceList() {
-      this.deviceList.innerHTML = "";
-      if (this.devices.size === 0) return;
+      if (this.devices.size === 0) {
+        this.deviceList.innerHTML = "";
+        return;
+      }
       const showSerialRaw = await window.mirrorControl.getSetting("showSerial");
       const showSerial = showSerialRaw ?? true;
+      this.deviceList.innerHTML = "";
       for (const device of this.devices.values()) {
         const card = this.createDeviceCard(device);
         const serialEl = card.querySelector(".device-serial");
