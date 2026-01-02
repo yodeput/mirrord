@@ -1,6 +1,31 @@
-<p style="text-align: center;"><img src="./resources/mirrd-bannner.png?raw=tru" style="zoom:;" /></p>
+<p align="center"><img src="./resources/mirrd-bannner.png?raw=tru"/></p>
 
-# **.mirrord**
+
+<p align="center">
+  <a href="https://github.com/lyswhut/lx-music-desktop/releases"><img src="https://img.shields.io/github/release/yodeput/mirrord" alt="Release version"></a>
+  <a href="https://github.com/yodeput/mirrord/actions/workflows/release.yml"><img src="https://github.com/yodeput/mirrord/workflows/Build/badge.svg" alt="Build status"></a>
+  <a href="https://electronjs.org/releases/stable"><img src="https://img.shields.io/github/package-json/dependency-version/yodeput/mirrord/dev/electron/master" alt="Electron version"></a>
+</p>
+
+<!-- [![GitHub release][1]][2]
+[![Build status][3]][4]
+[![GitHub Releases Download][5]][6]
+[![dev branch][7]][8]
+[![GitHub license][9]][10] -->
+
+<!-- [1]: https://img.shields.io/github/release/yodeput/mirrord
+[2]: https://github.com/yodeput/mirrord/releases
+[3]: https://ci.appveyor.com/api/projects/status/flrsqd5ymp8fnte5?svg=true
+[4]: https://ci.appveyor.com/project/yodeput/mirrord
+[5]: https://img.shields.io/github/downloads/yodeput/mirrord/latest/total
+[5]: https://img.shields.io/github/downloads/yodeput/mirrord/total
+[6]: https://github.com/yodeput/mirrord/releases
+[7]: https://img.shields.io/github/package-json/v/yodeput/mirrord/dev
+[8]: https://github.com/yodeput/mirrord/tree/dev
+[9]: https://img.shields.io/github/license/yodeput/mirrord
+[10]: https://github.com/yodeput/mirrord/blob/master/LICENSE -->
+
+# .mirrord
 
 A high-performance Android device mirroring application built with Electron, powered by the **scrcpy** protocol. Designed for developers and power users who demand speed, style, and advanced control.
 
