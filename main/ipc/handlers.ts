@@ -1,9 +1,11 @@
-import { ipcMain, BrowserWindow, app } from 'electron'
+import { ipcMain, BrowserWindow, app, shell } from 'electron'
 import { AdbManager, DeviceInfo } from '../adb/AdbManager'
 import { DeviceServer } from '../adb/DeviceServer'
 import { DeviceConnection } from '../adb/DeviceConnection'
 import { createDeviceWindow } from '../index'
 import { SettingsManager } from '../SettingsManager'
+import { UpdateChecker } from '../utils/UpdateChecker'
+import { UpdateDownloader } from '../utils/UpdateDownloader'
 
 const settingsManager = new SettingsManager()
 
@@ -54,6 +56,37 @@ export function registerIpcHandlers(
   // Get app version
   ipcMain.handle('app:get-version', () => {
     return app.getVersion();
+  });
+
+  // Check for updates
+  ipcMain.handle('app:check-for-updates', async () => {
+    return UpdateChecker.checkForUpdates();
+  });
+
+  // Download Update
+  ipcMain.handle('app:download-update', async (event, url: string) => {
+      const win = BrowserWindow.fromWebContents(event.sender);
+      try {
+          const filePath = await UpdateDownloader.downloadUpdate(url, (progress) => {
+              if (!win?.isDestroyed()) {
+                  win?.webContents.send('app:update-download-progress', progress);
+              }
+          });
+          return { success: true, filePath };
+      } catch (error: any) {
+          console.error('Download failed:', error);
+          return { success: false, error: error.message };
+      }
+  });
+
+  // Install Update
+  ipcMain.handle('app:install-update', async (event, filePath: string) => {
+      return await UpdateDownloader.installUpdate(filePath);
+  });
+
+  // Open external URL
+  ipcMain.handle('app:open-external', async (_event, url: string) => {
+    return shell.openExternal(url);
   });
 
   // Get list of devices

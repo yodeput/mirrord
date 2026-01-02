@@ -4,6 +4,15 @@ import { AdbManager, DeviceInfo } from './adb/AdbManager';
 import { DeviceServer } from './adb/DeviceServer';
 import { registerIpcHandlers, disconnectDevice } from './ipc/handlers';
 
+// Enable live reload in development
+if (process.env.NODE_ENV === 'development') {
+  try {
+    require('electron-reload')(path.join(__dirname, '../../renderer'), {
+      electron: require(path.join(__dirname, '../../node_modules/electron'))
+    });
+  } catch (err) { }
+}
+
 // Keep references to windows
 let mainWindow: BrowserWindow | null = null;
 const deviceWindows = new Map<string, BrowserWindow>();

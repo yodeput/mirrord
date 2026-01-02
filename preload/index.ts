@@ -9,6 +9,20 @@ const api = {
   
   getAppVersion: () => ipcRenderer.invoke('app:get-version'),
   
+  checkForUpdates: () => ipcRenderer.invoke('app:check-for-updates'),
+  
+  downloadUpdate: (url: string) => ipcRenderer.invoke('app:download-update', url),
+  
+  installUpdate: (filePath: string) => ipcRenderer.invoke('app:install-update', filePath),
+  
+  onUpdateDownloadProgress: (callback: (progress: number) => void) => {
+    const listener = (_event: any, progress: number) => callback(progress);
+    ipcRenderer.on('app:update-download-progress', listener);
+    return () => ipcRenderer.removeListener('app:update-download-progress', listener);
+  },
+  
+  openExternal: (url: string) => ipcRenderer.invoke('app:open-external', url),
+  
   startMirror: (serial: string, options?: {
     bitrate?: number;
     maxSize?: number;

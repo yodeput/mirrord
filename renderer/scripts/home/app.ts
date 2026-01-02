@@ -77,9 +77,164 @@ class HomeApp {
     } catch (e) {
         console.error('Failed to get app version', e);
     }
+
+    // Check for Updates
+    this.checkForUpdates(false);
+  }
+  
+  private async checkForUpdates(manual: boolean = false): Promise<void> {
+    const btnCheck = document.getElementById('btn-check-update');
+    const originalText = btnCheck?.innerHTML;
+    
+    if (manual && btnCheck) {
+        btnCheck.innerHTML = '<span class="text-white font-medium min-w-[120px] text-center">Checking...</span>';
+        btnCheck.style.pointerEvents = 'none';
+        btnCheck.classList.add('opacity-70');
+    }
+
+    try {
+        console.log('[HomeApp] Checking for updates...');
+        const update = await window.mirrorControl.checkForUpdates();
+        
+        if (update.available) {
+            console.log('[HomeApp] Update available:', update);
+            this.showUpdateModal(update);
+            
+            // Update footer button to indicate update available
+            if (btnCheck) {
+                btnCheck.innerHTML = '<span class="text-white font-medium min-w-[120px] text-center animate-pulse">Update Available</span>';
+                btnCheck.onclick = () => this.showUpdateModal(update);
+            }
+        } else {
+            console.log('[HomeApp] No updates found.');
+            if (btnCheck) {
+                 btnCheck.innerHTML = '<span>Check for Updates</span>';
+            }
+            if (manual) {
+                alert(`You are on the latest version (v${update.version}).`);
+            }
+        }
+    } catch (e) {
+        console.error('[HomeApp] Update check failed:', e);
+        if (manual) alert('Failed to check for updates.');
+        if (btnCheck) btnCheck.innerHTML = '<span>Check for Updates</span>';
+    } finally {
+        if (manual && btnCheck) {
+             btnCheck.style.pointerEvents = 'auto';
+             btnCheck.classList.remove('opacity-70');
+        }
+    }
+  }
+
+  private showUpdateModal(update: any): void {
+    const modal = document.getElementById('modal-update');
+    const versionText = document.getElementById('update-version-text');
+    const notesText = document.getElementById('update-release-notes');
+    
+    // Buttons
+    const btnSkip = document.getElementById('btn-skip-update');
+    const btnDownload = document.getElementById('btn-download-update'); // External
+    const btnInstall = document.getElementById('btn-install-update'); // Internal
+    
+    // UI Elements
+    const progressContainer = document.getElementById('update-progress-container');
+    const progressBar = document.getElementById('update-progress-bar');
+    const percentageText = document.getElementById('update-percentage');
+    const actionsContainer = document.getElementById('update-actions');
+
+    if (modal && versionText && notesText) {
+        versionText.textContent = `Version ${update.version} is available.`;
+        notesText.textContent = update.releaseNotes || 'No release notes provided.';
+        
+        // Reset UI state
+        if (progressContainer) progressContainer.classList.add('hidden');
+        if (actionsContainer) actionsContainer.classList.remove('hidden');
+        
+        modal.classList.remove('opacity-0', 'pointer-events-none');
+        const content = modal.querySelector('div.relative');
+        content?.classList.remove('scale-95', 'translate-y-4');
+        
+        // Handlers - Use onclick to prevent duplicate listeners
+        
+        // 1. External Download
+        if (btnDownload) {
+             btnDownload.onclick = () => {
+                if (update.url) {
+                    window.mirrorControl.openExternal(update.url);
+                }
+                this.closeUpdateModal();
+             };
+        }
+        
+        // 2. Internal Install
+        if (btnInstall) {
+            // Disable if no direct download asset found
+            if (!update.downloadUrl) {
+                btnInstall.innerText = 'Unavailable';
+                btnInstall.title = "Direct download not available for this OS";
+                btnInstall.classList.add('opacity-50', 'cursor-not-allowed');
+                btnInstall.onclick = null;
+            } else {
+                btnInstall.innerText = 'Install Now';
+                btnInstall.title = "";
+                btnInstall.classList.remove('opacity-50', 'cursor-not-allowed');
+                
+                btnInstall.onclick = async () => {
+                    // Start Download Flow
+                    if (progressContainer) progressContainer.classList.remove('hidden');
+                    if (actionsContainer) actionsContainer.classList.add('hidden');
+                    
+                    const cleanup = window.mirrorControl.onUpdateDownloadProgress((percent: number) => {
+                        if (progressBar) progressBar.style.width = `${percent}%`;
+                        if (percentageText) percentageText.innerText = `${percent}%`;
+                    });
+
+                    try {
+                        console.log(`[HomeApp] Downloading update from: ${update.downloadUrl}`);
+                        const result = await window.mirrorControl.downloadUpdate(update.downloadUrl);
+                        
+                        if (result.success) {
+                            console.log('[HomeApp] Update downloaded:', result.filePath);
+                            // Install
+                            await window.mirrorControl.installUpdate(result.filePath);
+                            this.closeUpdateModal();
+                        } else {
+                            throw new Error(result.error);
+                        }
+                    } catch (e) {
+                         console.error('Update failed:', e);
+                         alert('Failed to download update.');
+                         this.closeUpdateModal();
+                    } finally {
+                        cleanup();
+                    }
+                };
+            }
+        }
+        
+        if (btnSkip) {
+            btnSkip.onclick = () => {
+                this.closeUpdateModal();
+            };
+        }
+    }
+  }
+
+  private closeUpdateModal(): void {
+    const modal = document.getElementById('modal-update');
+    if (modal) {
+        modal.classList.add('opacity-0', 'pointer-events-none');
+        const content = modal.querySelector('div.relative');
+        content?.classList.add('scale-95', 'translate-y-4');
+    }
   }
 
   private setupEventListeners(): void {
+    // Check Update Button
+    document.getElementById('btn-check-update')?.addEventListener('click', () => {
+        this.checkForUpdates(true);
+    });
+
     // Restart ADB button
     document.getElementById('btn-restart-adb')?.addEventListener('click', async () => {
       try {
