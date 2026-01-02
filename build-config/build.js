@@ -17,10 +17,7 @@ const options = {
     'dist/**/*',
     'renderer/**/*',
     'resources/**/*',
-    '!node_modules/**/*',
-    'node_modules/semver',
-    'node_modules/semver-compare',
-    'node_modules/@types/semver'
+    '!node_modules/**/*'
   ],
   asar: true,
   extraResources: [

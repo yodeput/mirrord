@@ -1,6 +1,5 @@
 import { app, shell } from 'electron';
 import * as https from 'https';
-import semver from 'semver';
 
 export interface UpdateInfo {
   available: boolean;
@@ -32,7 +31,7 @@ export class UpdateChecker {
 
       console.log(`[UpdateChecker] Current: ${cleanCurrent}, Latest: ${latestVersion}`);
 
-      if (semver.gt(latestVersion, cleanCurrent)) {
+      if (this.compareVersions(latestVersion, cleanCurrent) > 0) {
         // Find suitable asset
         const asset = this.findAsset(release.assets);
         
@@ -51,6 +50,29 @@ export class UpdateChecker {
       // Return false on error
       return { available: false, version: '', url: '', downloadUrl: '', releaseNotes: '' };
     }
+  }
+
+  /**
+   * Compare two semantic version strings.
+   * Returns:
+   *   1 if v1 > v2
+   *  -1 if v1 < v2
+   *   0 if v1 == v2
+   */
+  private static compareVersions(v1: string, v2: string): number {
+    const p1 = v1.split('.').map(Number);
+    const p2 = v2.split('.').map(Number);
+    const len = Math.max(p1.length, p2.length);
+
+    for (let i = 0; i < len; i++) {
+        const num1 = p1[i] || 0;
+        const num2 = p2[i] || 0;
+        
+        if (num1 > num2) return 1;
+        if (num1 < num2) return -1;
+    }
+    
+    return 0;
   }
 
   private static findAsset(assets: any[]): any {
