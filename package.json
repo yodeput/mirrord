@@ -8,6 +8,7 @@
         "url": "https://github.com/yodeput/mirrord.git"
     },
     "license": "MIT",
+    "appId": "com.mirrord.desktop",
     "main": "dist/main/index.js",
     "scripts": {
         "build:renderer": "npx esbuild renderer/scripts/device/app.ts --bundle --outfile=renderer/scripts/device/app.js --platform=browser && npx esbuild renderer/scripts/home/app.ts --bundle --outfile=renderer/scripts/home/app.js --platform=browser",
@@ -43,19 +44,19 @@
         "publish:linux:pacman": "node build-config/build.js target=linux arch=x64 type=pacman publish=always"
     },
     "dependencies": {
-        "electron-log": "^5.0.0",
-        "semver": "^7.7.3"
+        "electron-log": "^5.0.0"
     },
     "devDependencies": {
         "@types/node": "^20.10.0",
         "@types/semver": "^7.7.1",
         "autoprefixer": "^10.4.23",
         "concurrently": "^8.2.2",
-        "electron": "28",
+        "electron": "^39.2.7",
         "electron-builder": "^26.3.2",
         "electron-reload": "^2.0.0-alpha.1",
         "esbuild": "^0.27.2",
         "postcss": "^8.5.6",
+        "semver": "^7.7.3",
         "tailwindcss": "3.4.17",
         "typescript": "^5.3.3"
     }
