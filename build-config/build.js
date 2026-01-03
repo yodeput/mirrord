@@ -10,13 +10,12 @@ const options = {
   appId: 'com.mirrord.desktop',
   productName: 'mirrord',
   directories: {
-    buildResources: 'resources',
-    output: 'out',
+    buildResources: 'build',
+    output: 'dist',
   },
   files: [
     'dist/**/*',
-    'renderer/**/*',
-    'resources/**/*',
+    'dist-electron/**/*',
     '!node_modules/**/*'
   ],
   asar: true,
