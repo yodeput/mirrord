@@ -203,3 +203,21 @@
 .titlebar-no-drag {
   -webkit-app-region: no-drag;
 }
+
+/* Screenshot animations */
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(100%) scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+

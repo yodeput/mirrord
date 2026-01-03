@@ -26,6 +26,10 @@ export default function DevicePage() {
   const [rotation, setRotation] = useState(0) // 0, 90, 180, 270
   const [screenOn, setScreenOn] = useState(true)
   const [showKeyboard, setShowKeyboard] = useState(true)
+  const [screenshotFlash, setScreenshotFlash] = useState(false)
+  const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null)
+  const [screenshotFilePath, setScreenshotFilePath] = useState<string | null>(null)
+
 
   
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -280,6 +284,34 @@ export default function DevicePage() {
             }}
             autoPlay playsInline muted
           />
+          
+          {/* Screenshot Flash Effect */}
+          {screenshotFlash && (
+            <div 
+              className="absolute inset-0 bg-white z-50 animate-[fadeOut_0.2s_ease-out_forwards]"
+              style={{ animationFillMode: 'forwards' }}
+            />
+          )}
+          
+          {/* Screenshot Thumbnail Preview */}
+          {screenshotPreview && (
+            <div 
+              className="absolute bottom-4 right-4 z-40 animate-[slideIn_0.3s_ease-out]"
+              onClick={() => {
+                if (screenshotFilePath) {
+                  window.mirrorControl.openExternal(`file://${screenshotFilePath}`)
+                }
+              }}
+            >
+              <div className="bg-zinc-800 rounded-lg shadow-2xl border border-white/10 p-1 hover:scale-105 transition-transform cursor-pointer">
+                <img 
+                  src={screenshotPreview} 
+                  alt="Screenshot" 
+                  className="w-20 h-auto rounded"
+                />
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Bottom Nav */}
@@ -311,7 +343,26 @@ export default function DevicePage() {
           onPowerToggle={handlePowerToggle}
           screenOn={screenOn}
           showKeyboard={showKeyboard}
-          onScreenshot={() => console.log('Screenshot TBD')}
+          onScreenshot={async () => {
+            try {
+              // Flash effect
+              setScreenshotFlash(true)
+              setTimeout(() => setScreenshotFlash(false), 200)
+              
+              const { filePath, dataUrl } = await window.mirrorControl.takeScreenshot(serial, model)
+              console.log('[DevicePage] Screenshot saved:', filePath)
+              
+              // Show thumbnail preview using base64 data URL
+              setScreenshotPreview(dataUrl)
+              setScreenshotFilePath(filePath)
+              setTimeout(() => {
+                setScreenshotPreview(null)
+                setScreenshotFilePath(null)
+              }, 4000)
+            } catch (e) {
+              console.error('[DevicePage] Screenshot failed:', e)
+            }
+          }}
           onRecord={() => console.log('Record TBD')}
         />
       )}

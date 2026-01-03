@@ -1,4 +1,6 @@
 import { ipcMain, BrowserWindow, app, shell, dialog, screen } from 'electron'
+import path from 'node:path'
+import * as fs from 'node:fs/promises'
 import { AdbManager, DeviceInfo } from '../adb/AdbManager'
 import { DeviceServer } from '../adb/DeviceServer'
 import { DeviceConnection } from '../adb/DeviceConnection'
@@ -522,6 +524,30 @@ export function registerIpcHandlers(
         serial,
         `settings put system user_rotation ${rotation}`
       )
+    }
+  )
+
+  // Take screenshot and save to Downloads
+  ipcMain.handle(
+    'device:take-screenshot',
+    async (event, serial: string, model?: string): Promise<{ filePath: string; dataUrl: string }> => {
+      // Capture screenshot as PNG
+      const buffer = await adbManager.execBuffer(['exec-out', 'screencap', '-p'], serial)
+      
+      // Generate filename
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)
+      const deviceName = (model || serial).replace(/[^a-zA-Z0-9]/g, '_')
+      const filename = `Screenshot_${deviceName}_${timestamp}.png`
+      
+      const downloadPath = app.getPath('downloads')
+      const filePath = path.join(downloadPath, filename)
+      
+      await fs.writeFile(filePath, buffer)
+      console.log(`[IPC] Screenshot saved: ${filePath}`)
+      
+      // Return base64 data URL for preview
+      const dataUrl = `data:image/png;base64,${buffer.toString('base64')}`
+      return { filePath, dataUrl }
     }
   )
 

@@ -91,6 +91,9 @@ const api = {
   adjustWidth: (delta: number) => ipcRenderer.invoke('device:adjust-width', delta),
   
   rotate: (serial: string) => ipcRenderer.invoke('device:rotate', serial),
+
+  takeScreenshot: (serial: string, model?: string) => ipcRenderer.invoke('device:take-screenshot', serial, model),
+
   
   copyLogcat: (serial: string) => ipcRenderer.invoke('device:copy-logcat', serial),
   

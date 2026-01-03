@@ -174,6 +174,28 @@ export class AdbManager extends EventEmitter {
   }
 
   /**
+   * Execute ADB command with binary output (for screencap, etc.)
+   */
+  async execBuffer(args: string[], serial?: string): Promise<Buffer> {
+    return new Promise((resolve, reject) => {
+      const cmdArgs = serial ? ['-s', serial, ...args] : args;
+      
+      execFile(this.adbPath, cmdArgs, {
+        timeout: 30000,
+        encoding: 'buffer',
+        maxBuffer: 50 * 1024 * 1024, // 50MB for screenshots
+        windowsHide: true,
+      }, (error, stdout, stderr) => {
+        if (error) {
+          reject(new Error(stderr?.toString() || error.message));
+        } else {
+          resolve(stdout as unknown as Buffer);
+        }
+      });
+    });
+  }
+
+  /**
    * Execute ADB shell command
    */
   async shell(serial: string, command: string): Promise<string> {
