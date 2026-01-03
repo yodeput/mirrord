@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
-import { RefreshCw, Plus, Settings, Smartphone } from 'lucide-react'
+import { RefreshCw, Plus, Settings, Smartphone, Sun, Moon } from 'lucide-react'
+import { useTheme } from '@/components/ThemeProvider'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Switch } from '@/components/ui/switch'
@@ -13,6 +14,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 
 export default function HomePage() {
   const { devices, loading, refresh } = useDevices()
+  const { theme, toggleTheme } = useTheme()
   const [showSerial, setShowSerial] = useSettings('show_device_serial', true)
   const [autoConnect, setAutoConnect] = useSettings('auto_connect_wireless', false)
   const [wirelessOpen, setWirelessOpen] = useState(false)
@@ -215,12 +217,26 @@ export default function HomePage() {
       {/* Title Bar */}
       <div className="h-12 titlebar-drag flex items-center justify-center border-b bg-background/80 backdrop-blur-sm">
         <span className="font-semibold text-sm text-primary">.mirrord</span>
-        <button 
-          className="absolute right-4 p-2 hover:bg-muted rounded-md titlebar-no-drag"
-          onClick={() => setSettingsOpen(true)}
-        >
-          <Settings className="w-4 h-4" />
-        </button>
+        <div className="absolute right-4 flex items-center gap-1 titlebar-no-drag">
+          <button 
+            className="p-2 hover:bg-muted rounded-md"
+            onClick={toggleTheme}
+            title={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
+          >
+            {theme === 'light' ? (
+              <Moon className="w-4 h-4 text-zinc-500" />
+            ) : (
+              <Sun className="w-4 h-4 text-yellow-500" />
+            )}
+          </button>
+          <button 
+            className="p-2 hover:bg-muted rounded-md"
+            onClick={() => setSettingsOpen(true)}
+            title="Settings"
+          >
+            <Settings className="w-4 h-4 text-zinc-500" />
+          </button>
+        </div>
       </div>
 
       {/* Main Content */}

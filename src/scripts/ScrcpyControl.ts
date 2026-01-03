@@ -132,6 +132,56 @@ export class ScrcpyControl {
   }
 
   /**
+   * Inject text into the device
+   */
+  injectText(text: string): void {
+    const encoder = new TextEncoder();
+    const utf8 = encoder.encode(text);
+    const buffer = new ArrayBuffer(5 + utf8.length);
+    const view = new DataView(buffer);
+    
+    view.setUint8(0, ControlMsgType.INJECT_TEXT);
+    view.setUint32(1, utf8.length, false);
+    new Uint8Array(buffer, 5).set(utf8);
+    
+    this.sendFn(new Uint8Array(buffer));
+  }
+
+  /**
+   * Set device clipboard
+   */
+  setClipboard(text: string, paste: boolean = false): void {
+    const encoder = new TextEncoder();
+    const utf8 = encoder.encode(text);
+    // Type(1) + Sequence(8) + Paste(1) + Length(4) + Text(N)
+    const buffer = new ArrayBuffer(1 + 8 + 1 + 4 + utf8.length);
+    const view = new DataView(buffer);
+    
+    let offset = 0;
+    view.setUint8(offset++, ControlMsgType.SET_CLIPBOARD);
+    view.setBigUint64(offset, 0n, false);
+    offset += 8;
+    view.setUint8(offset++, paste ? 1 : 0);
+    view.setUint32(offset, utf8.length, false);
+    offset += 4;
+    
+    new Uint8Array(buffer, offset).set(utf8);
+    
+    this.sendFn(new Uint8Array(buffer));
+  }
+
+  /**
+   * Toggle display power
+   */
+  setDisplayPower(on: boolean): void {
+    const buffer = new ArrayBuffer(2);
+    const view = new DataView(buffer);
+    view.setUint8(0, ControlMsgType.SET_DISPLAY_POWER);
+    view.setUint8(1, on ? 1 : 0);
+    this.sendFn(new Uint8Array(buffer));
+  }
+
+  /**
    * Request device to rotate its screen
    */
   rotateDevice(): void {
@@ -149,3 +199,4 @@ export class ScrcpyControl {
     this.deviceHeight = height;
   }
 }
+

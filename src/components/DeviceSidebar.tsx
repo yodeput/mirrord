@@ -5,7 +5,8 @@ import {
   KeyboardIcon, 
   RotateCcwIcon, 
   CameraIcon, 
-  VideoIcon 
+  VideoIcon,
+  PowerIcon
 } from 'lucide-react'
 import { StreamSettings, VideoMaxBitrate, VideoResolution, VideoDecoder } from './StreamSettings'
 
@@ -26,6 +27,9 @@ interface DeviceSidebarProps {
   onRotate?: () => void
   onScreenshot?: () => void
   onRecord?: () => void
+  onPowerToggle?: () => void
+  screenOn?: boolean
+  showKeyboard?: boolean
 }
 
 export function DeviceSidebar({
@@ -40,10 +44,13 @@ export function DeviceSidebar({
   onKeyboardToggle,
   onRotate,
   onScreenshot,
-  onRecord
+  onRecord,
+  onPowerToggle,
+  screenOn = true,
+  showKeyboard = false
 }: DeviceSidebarProps) {
   return (
-    <div className={`w-[48px] bg-zinc-900/80 border-l border-white/5 flex flex-col items-center gap-3 justify-between ${isFullscreen ? 'fixed right-0 top-0 h-full z-50' : ''}`}>
+    <div className="w-[48px] bg-zinc-900 border-l border-white/5 flex flex-col items-center gap-3 justify-between shadow-xl">
       {/* Top Section */}
       <div className="pt-10 flex flex-col gap-3">
         <button 
@@ -67,20 +74,27 @@ export function DeviceSidebar({
         >
           <VolumeXIcon className="w-5 h-5" />
         </button>
-        {/* <button 
+        <button 
           onClick={onKeyboardToggle}
           title="Toggle Keyboard"
-          className="p-2 hover:bg-zinc-800 rounded-lg text-zinc-400 hover:text-white transition-colors"
+          className={`p-2 hover:bg-zinc-800 rounded-lg transition-colors ${showKeyboard ? 'text-primary' : 'text-zinc-400 hover:text-white'}`}
         >
           <KeyboardIcon className="w-5 h-5" />
-        </button> */}
-        {/* <button 
+        </button>
+        <button 
           onClick={onRotate}
           title="Rotate Screen"
           className="p-2 hover:bg-zinc-800 rounded-lg text-zinc-400 hover:text-white transition-colors"
         >
           <RotateCcwIcon className="w-5 h-5" />
-        </button> */}
+        </button>
+        <button 
+          onClick={onPowerToggle}
+          title={screenOn ? 'Turn Screen Off' : 'Turn Screen On'}
+          className={`p-2 hover:bg-zinc-800 rounded-lg transition-colors ${!screenOn ? 'text-red-500' : 'text-zinc-400 hover:text-white'}`}
+        >
+          <PowerIcon className="w-5 h-5" />
+        </button>
       </div>
 
       {/* Bottom Section */}

@@ -53,6 +53,69 @@ export function registerIpcHandlers(
     adbManager.setAdbPath(savedAdbPath)
   }
 
+  // Auto-connect to previously known wireless devices on startup
+  const knownIps = settingsManager.get('known_wireless_ips') || []
+  if (Array.isArray(knownIps) && knownIps.length > 0) {
+    console.log(`[AdbManager] Trying to reconnect ${knownIps.length} known wireless devices...`)
+    knownIps.forEach(ip => {
+      adbManager.connect(ip).catch(() => { /* Silent fail for disconnected devices */ })
+    })
+  }
+
+  // Handle auto-wireless handshake for new USB devices
+  adbManager.on('device-connected', async (device: DeviceInfo) => {
+    // Check if auto-connect wireless is enabled in settings
+    const autoWireless = settingsManager.get('auto_connect_wireless')
+    if (!autoWireless) return
+
+    // Is it a USB device? Wireless serials contain ':' or '.' (IP format)
+    const isWireless = device.serial.includes(':') || device.serial.includes('.')
+    if (isWireless) {
+      // If it's wireless and successful, remember it
+      const currentKnown = settingsManager.get('known_wireless_ips') || []
+      const ip = device.serial.split(':')[0]
+      if (!currentKnown.includes(ip)) {
+        settingsManager.set('known_wireless_ips', [...currentKnown, ip])
+      }
+      return
+    }
+
+    // Only attempt for authorized 'device' state
+    if (device.state !== 'device') return
+
+    // Avoid double-triggering for the same USB device in one session if we already tried
+    // (We could use a Set in memory to track this session's attempts)
+    
+    console.log(`[AdbManager] Auto-Wireless: New USB device detected (${device.serial}). Handshaking...`)
+
+    try {
+      // 1. Enable TCP/IP mode on device
+      await adbManager.enableTcpIp(device.serial)
+      
+      // Wait for service to restart
+      await new Promise(resolve => setTimeout(resolve, 2000))
+      
+      // 2. Get IP address
+      const ip = await adbManager.getDeviceIp(device.serial)
+      if (!ip) {
+        console.warn(`[AdbManager] Auto-Wireless: Could not get IP for ${device.serial}`)
+        return
+      }
+      
+      // 3. Connect to IP
+      await adbManager.connect(ip)
+      console.log(`[AdbManager] Auto-Wireless: Successfully connected to ${ip}`)
+      
+      // 4. Save to known IPs
+      const currentKnown = settingsManager.get('known_wireless_ips') || []
+      if (!currentKnown.includes(ip)) {
+        settingsManager.set('known_wireless_ips', [...currentKnown, ip])
+      }
+    } catch (error) {
+       console.error(`[AdbManager] Auto-Wireless failed for ${device.serial}:`, error)
+    }
+  })
+
   // Get app version
   ipcMain.handle('app:get-version', () => {
     return app.getVersion();
@@ -419,6 +482,32 @@ export function registerIpcHandlers(
       await adbManager.shell(serial, `input keyevent ${keycode}`)
     }
   )
+
+  // Toggle soft keyboard (show_ime_with_hard_keyboard)
+  ipcMain.handle(
+    'device:set-soft-keyboard',
+    async (event, serial: string, visible: boolean): Promise<void> => {
+      // 0 = Hide soft keyboard when hard keyboard is present
+      // 1 = Show soft keyboard even if hard keyboard is present
+      const value = visible ? 1 : 0
+      await adbManager.shell(serial, `settings put secure show_ime_with_hard_keyboard ${value}`)
+      
+      // Force refresh input settings
+      try {
+        await adbManager.shell(serial, 'am broadcast -a android.intent.action.INPUT_METHOD_CHANGED')
+      } catch (e) {}
+
+      // Fallback for Android 11+ to explicitly hide/show
+      if (!visible) {
+        try {
+          await adbManager.shell(serial, 'ime hide')
+        } catch (e) {}
+      }
+    }
+  )
+
+
+
 
   // Rotate screen
   ipcMain.handle(

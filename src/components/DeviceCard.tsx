@@ -35,7 +35,7 @@ export default function DeviceCard({ device, showSerial = true, onStart, onEnabl
     <Card className="hover:shadow-md transition-shadow">
       <CardContent className="p-4 flex items-center gap-4">
         {/* Device Icon */}
-        <div className={`rounded-lg p-2 flex items-center justify-center ${isWireless ? "bg-green-300/50 text-green-800" : "bg-blue-300/50 text-blue-800"}`}   title={isWireless ? "Connected via Wireless" : "Connected via USB"} >
+        <div className={`rounded-lg p-2 flex items-center justify-center ${isWireless ? "bg-green-300/50 text-green-800 dark:bg-green-500/50 dark:text-green-200" : "bg-blue-300/50 text-blue-800 dark:bg-blue-500/50 dark:text-blue-200"}`}   title={isWireless ? "Connected via Wireless" : "Connected via USB"} >
           {isWireless ? (
             <Wifi className="w-6"/>
           ) : (
