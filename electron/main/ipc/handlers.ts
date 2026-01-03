@@ -1,4 +1,4 @@
-import { ipcMain, BrowserWindow, app, shell, dialog } from 'electron'
+import { ipcMain, BrowserWindow, app, shell, dialog, screen } from 'electron'
 import { AdbManager, DeviceInfo } from '../adb/AdbManager'
 import { DeviceServer } from '../adb/DeviceServer'
 import { DeviceConnection } from '../adb/DeviceConnection'
@@ -162,7 +162,7 @@ export function registerIpcHandlers(
 
       // Create device window only if requested (default: true)
       if (options?.openWindow !== false) {
-        const win = createDeviceWindow(device)
+        const win = createDeviceWindow(device, port)
         windowSerials.set(win.id, serial)
       }
 
@@ -197,6 +197,62 @@ export function registerIpcHandlers(
 
       await DeviceServer.stop(serial)
       broadcast('device:mirror-stopped', serial)
+    }
+  )
+
+  // Restart mirroring (Close window -> Start -> Open Window)
+  ipcMain.handle(
+    'device:restart-mirror',
+    async (
+      event,
+      serial: string, 
+      options?: {
+        bitrate?: number
+        maxSize?: number
+        maxFps?: number
+        forceBaseline?: boolean
+        bitrateValue?: string
+        resolution?: string
+        decoder?: string
+      }
+    ) => {
+      console.log(`[IPC] Restarting mirror for ${serial} with options:`, options)
+      
+      const win = deviceWindows.get(serial)
+      if (win) {
+         await new Promise<void>(resolve => {
+           win.once('closed', () => resolve())
+           win.close()
+         })
+      }
+      
+      // Wait a bit for cleanup propagation
+      await new Promise(r => setTimeout(r, 500))
+
+      const device = adbManager.getDevice(serial)
+      if (!device) throw new Error(`Device ${serial} not found`)
+      
+      // Merge defaults similar to start-mirror (simplified)
+      const isWireless = serial.includes(':') || serial.includes('.')
+      const defaultBitrate = isWireless ? 4_000_000 : 24_000_000
+      const defaultMaxFps = isWireless ? 30 : 60
+      
+      const finalOptions = {
+        maxSize: 0,
+        maxFps: defaultMaxFps,
+        ...options,
+        bitrate: options?.bitrate || defaultBitrate,
+      }
+      
+      // Start server
+      const port = await DeviceServer.start(serial, finalOptions)
+
+      // Create new window
+      const newWin = createDeviceWindow(device, port, options)
+      windowSerials.set(newWin.id, serial)
+
+      broadcast('device:mirror-started', serial)
+      return { port }
     }
   )
 
@@ -412,7 +468,6 @@ export function registerIpcHandlers(
       const win = BrowserWindow.fromWebContents(event.sender)
       if (win) {
         // Calculate window size to fit screen while maintaining aspect ratio of VIDEO
-        const { screen } = require('electron')
         const primaryDisplay = screen.getPrimaryDisplay()
         const workArea = primaryDisplay.workArea
 
@@ -453,7 +508,25 @@ export function registerIpcHandlers(
         )
 
         win.setSize(resultWidth, resultHeight)
-        // win.center(); // Removed to allow expansion to the right without moving window
+        
+        // Lock aspect ratio for manual resizing
+        win.setAspectRatio(resultWidth / resultHeight)
+      }
+    }
+  )
+
+  // Adjust window width by delta (for sidebar toggle)
+  ipcMain.handle(
+    'device:adjust-width',
+    async (event, delta: number): Promise<void> => {
+      const win = BrowserWindow.fromWebContents(event.sender)
+      if (win) {
+        const [currentWidth, currentHeight] = win.getSize()
+        const newWidth = Math.max(300, currentWidth + delta)
+        win.setSize(newWidth, currentHeight)
+        // Update aspect ratio for new dimensions
+        win.setAspectRatio(newWidth / currentHeight)
+        console.log(`[IPC] Adjusted window width by ${delta}px: ${currentWidth} -> ${newWidth}`)
       }
     }
   )

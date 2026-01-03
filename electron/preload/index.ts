@@ -30,6 +30,8 @@ const api = {
     forceBaseline?: boolean;
   }) => ipcRenderer.invoke('device:start-mirror', serial, options),
   
+  restartMirror: (serial: string, options?: any) => ipcRenderer.invoke('device:restart-mirror', serial, options),
+  
   stopMirror: (serial: string, options?: { keepWindowOpen?: boolean }) => ipcRenderer.invoke('device:stop-mirror', serial, options),
   
   getDeviceInfo: (serial: string) => ipcRenderer.invoke('device:get-info', serial),
@@ -68,6 +70,12 @@ const api = {
     ipcRenderer.on('device:metadata', listener);
     return () => ipcRenderer.removeListener('device:metadata', listener);
   },
+
+  onFullscreenChange: (callback: (isFullscreen: boolean) => void) => {
+    const listener = (_event: any, isFullscreen: boolean) => callback(isFullscreen)
+    ipcRenderer.on('window:fullscreen-change', listener)
+    return () => ipcRenderer.removeListener('window:fullscreen-change', listener)
+  },
   
   // Screen control
   screenPower: (serial: string, on: boolean) => ipcRenderer.invoke('device:screen-power', serial, on),
@@ -75,6 +83,9 @@ const api = {
   // Resize window to fit video dimensions
   resizeWindow: (width: number, height: number, chromeHeight?: number, chromeWidth?: number) => 
     ipcRenderer.invoke('device:resize-window', width, height, chromeHeight, chromeWidth),
+  
+  // Adjust window width by delta (for sidebar toggle)
+  adjustWidth: (delta: number) => ipcRenderer.invoke('device:adjust-width', delta),
   
   rotate: (serial: string) => ipcRenderer.invoke('device:rotate', serial),
   

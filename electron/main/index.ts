@@ -33,7 +33,10 @@ function setupAdbEvents(): void {
     
     // Auto-close device window if open
     const deviceWin = deviceWindows.get(serial)
-    if (deviceWin) deviceWin.close()
+    if (deviceWin) {
+      console.log(`[Main] Device disconnected: ${serial}. Keeping window open for debugging.`)
+      // deviceWin.close()
+    }
   })
 
   adbManager.on('error', (error: Error) => {

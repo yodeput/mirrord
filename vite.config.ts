@@ -16,7 +16,12 @@ export default defineConfig(({ command }) => {
     resolve: {
       alias: {
         '@': path.join(__dirname, 'src'),
+        'jmuxerJs': path.join(__dirname, 'src/lib/jmuxer-esm.js'),
       },
+    },
+    // No need to optimize local JMuxer file
+    optimizeDeps: {
+      exclude: ['jmuxerJs'],
     },
     plugins: [
       react(),
@@ -60,3 +65,4 @@ export default defineConfig(({ command }) => {
     clearScreen: false,
   }
 })
+

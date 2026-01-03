@@ -11,7 +11,15 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL']
 
-export function createDeviceWindow(device: DeviceInfo): BrowserWindow {
+export function createDeviceWindow(
+  device: DeviceInfo, 
+  port: number = 27183,
+  options?: {
+    bitrateValue?: string
+    resolution?: string
+    decoder?: string
+  }
+): BrowserWindow {
   if (deviceWindows.has(device.serial)) {
     const existingWin = deviceWindows.get(device.serial)!
     existingWin.focus()
@@ -32,27 +40,65 @@ export function createDeviceWindow(device: DeviceInfo): BrowserWindow {
       sandbox: false,
     },
     titleBarStyle: 'hiddenInset',
-    trafficLightPosition: { x: 15, y: 17 },
+    trafficLightPosition: { x: 15, y: 12 },
     icon: path.join(__dirname, '../../resources/icon.png'),
   })
 
   deviceWindow.setMenu(null)
 
-  // Load device page with search params
+  // Load device page with search params (including port)
+  let params = `serial=${encodeURIComponent(device.serial)}&model=${encodeURIComponent(device.model || 'Unknown')}&port=${port}`
+  
+  if (options?.bitrateValue) params += `&bitrate=${encodeURIComponent(options.bitrateValue)}`
+  if (options?.resolution) params += `&resolution=${encodeURIComponent(options.resolution)}`
+  if (options?.decoder) params += `&decoder=${encodeURIComponent(options.decoder)}`
+  
   if (VITE_DEV_SERVER_URL) {
     const url = new URL(VITE_DEV_SERVER_URL)
-    // HashRouter requires proper encoding of search params within the hash
-    url.hash = `/device?serial=${encodeURIComponent(device.serial)}&model=${encodeURIComponent(device.model || 'Unknown')}`
+    url.hash = `/device?${params}`
+    console.log('[createDeviceWindow] Loading URL:', url.toString())
     deviceWindow.loadURL(url.toString())
     deviceWindow.webContents.openDevTools()
   } else {
     const indexPath = path.join(__dirname, '../../dist/index.html')
     const url = new URL(`file://${indexPath}`)
-    url.hash = `/device?serial=${encodeURIComponent(device.serial)}&model=${encodeURIComponent(device.model || 'Unknown')}`
+    url.hash = `/device?${params}`
+    console.log('[createDeviceWindow] Loading file:', url.toString())
     deviceWindow.loadURL(url.toString())
   }
 
+  deviceWindow.on('ready-to-show', () => {
+    console.log('[createDeviceWindow] Window ready to show')
+    deviceWindow.show()
+  })
+
+  // Fullscreen events
+  deviceWindow.on('enter-full-screen', () => {
+    deviceWindow.webContents.send('window:fullscreen-change', true)
+  })
+
+  deviceWindow.on('leave-full-screen', () => {
+    deviceWindow.webContents.send('window:fullscreen-change', false)
+  })
+
+  deviceWindow.webContents.on('did-finish-load', () => {
+    console.log('[createDeviceWindow] Content finished loading')
+  })
+
+  deviceWindow.webContents.on('did-fail-load', (e, code, desc) => {
+    console.error('[createDeviceWindow] Failed to load:', code, desc)
+  })
+
+  deviceWindow.webContents.on('render-process-gone', (e, details) => {
+    console.error('[createDeviceWindow] Renderer process gone:', details)
+  })
+
+  deviceWindow.webContents.on('unresponsive', () => {
+    console.error('[createDeviceWindow] Window unresponsive')
+  })
+
   deviceWindow.on('closed', () => {
+    console.log('[createDeviceWindow] Window closed (event trigger)')
     deviceWindows.delete(device.serial)
     disconnectDevice(device.serial)
     DeviceServer.stop(device.serial)

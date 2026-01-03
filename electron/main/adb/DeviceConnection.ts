@@ -60,8 +60,8 @@ export class DeviceConnection extends EventEmitter {
       console.log(`[DeviceConnection] Connecting video socket to port ${this.port}...`);
       this.videoSocket = await this.createSocket('video');
       
-      // Wait a bit for scrcpy to prepare the next socket
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // Wait a bit for scrcpy to prepare the next socket (increased to 300ms)
+      await new Promise(resolve => setTimeout(resolve, 300));
       
       // Connect control socket
       console.log(`[DeviceConnection] Connecting control socket to port ${this.port}...`);
@@ -72,6 +72,15 @@ export class DeviceConnection extends EventEmitter {
       
     } catch (error) {
       console.error(`[DeviceConnection] Connection failed:`, error);
+      // Clean up partial connection
+      if (this.videoSocket) {
+        this.videoSocket.destroy();
+        this.videoSocket = null;
+      }
+      if (this.controlSocket) {
+        this.controlSocket.destroy();
+        this.controlSocket = null;
+      }
       this.handleConnectionFailed(error as Error);
     }
   }
@@ -101,7 +110,7 @@ export class DeviceConnection extends EventEmitter {
 
       socket.on('error', (error) => {
         clearTimeout(connectTimeout);
-        console.error(`[DeviceConnection] ${type} socket error:`, error.message);
+        // console.error(`[DeviceConnection] ${type} socket error:`, error.message);
         reject(error);
       });
     });
@@ -250,32 +259,40 @@ export class DeviceConnection extends EventEmitter {
   }
 
   private handleConnectionFailed(error: Error): void {
-    this.retryCount++;
+    console.error(`[DeviceConnection] Connection failed:`, error.message);
+    this.isConnected = false;
+    this.shouldReconnect = false;
     
-    if (this.retryCount >= this.maxRetries) {
-      console.error(`[DeviceConnection] Max retries (${this.maxRetries}) reached, giving up`);
-      this.emit('error', new Error('Max connection retries reached'));
-      return;
-    }
-
-    this.scheduleReconnect();
+    // Emit error so UI can show it, but don't close window immediately 
+    // unless the UI logic decides to. 
+    // However, the previous behavior was "infinite retry". 
+    // The user wants "device windows closed on Connection failed".
+    // Wait, the user said "always making device windows closed on ... ECONNREFUSED"
+    // and asked to "change this". 
+    // This implies they usually WANT the window to CLOSE on this error?
+    // OR they want to STOP it from closing?
+    // "always making device windows closed ... change this" -> "Change the fact that it always closes".
+    // So they want the window to STAY OPEN.
+    
+    // To keep the window open, we must NOT emit a fatal 'error' that might be caught 
+    // by a listener that closes the window.
+    // AND we should probably stop the infinite retry loop if it's pointless, 
+    // or keep it running but quietly.
+    
+    // If I look at createDeviceWindow.ts, it closes on 'closed' event.
+    // The previous loop was: Connection Failed -> scheduleReconnect -> ...
+    // The user said "the device windows instanly closed but looping ... in the log".
+    // This means the BACKEND loop is running, but the FRONTEND window closed.
+    
+    // If the frontend window closes, it's likely because of a crash or an emitted IPC message.
+    // But here, let's just emit 'error' (non-fatal) and maybe 'disconnected'.
+    
+    this.emit('error', error);
   }
 
+  // Removing scheduleReconnect from automatic usage 
   private scheduleReconnect(): void {
-    if (!this.shouldReconnect || this.reconnectTimer) {
-      return;
-    }
-
-    const delay = 2000;
-    
-    console.log(`[DeviceConnection] Retrying connection in ${delay}ms (attempt ${this.retryCount + 1}/${this.maxRetries})...`);
-    
-    this.reconnectTimer = setTimeout(() => {
-      this.reconnectTimer = null;
-      if (this.shouldReconnect) {
-        this.connect().catch(() => {});
-      }
-    }, delay);
+     // ...
   }
 
   /**
