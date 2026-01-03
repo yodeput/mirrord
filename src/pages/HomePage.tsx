@@ -8,7 +8,6 @@ import { useSettings } from '@/hooks/useSettings'
 import DeviceCard from '@/components/DeviceCard'
 import WirelessDialog from '@/components/WirelessDialog'
 import SettingsDialog from '@/components/SettingsDialog'
-import AdbMissingDialog from '@/components/AdbMissingDialog'
 import { Skeleton } from '@/components/ui/skeleton'
 // [Removed UpdateDialog import]
 
@@ -269,6 +268,14 @@ export default function HomePage() {
                 showSerial={showSerial}
                 onStart={() => handleStartMirror(device)}
                 onEnableWireless={() => handleEnableWireless(device)}
+                onDisconnect={async () => {
+                  try {
+                    await window.mirrorControl.disconnectWireless(device.serial)
+                    setTimeout(() => refresh(false), 1000)
+                  } catch (e) {
+                    console.error('Failed to disconnect:', e)
+                  }
+                }}
               />
             ))
           )}

@@ -8,10 +8,28 @@ interface DeviceCardProps {
   showSerial?: boolean
   onStart: () => void
   onEnableWireless?: () => void
+  onDisconnect?: () => void
 }
 
-export default function DeviceCard({ device, showSerial = true, onStart, onEnableWireless }: DeviceCardProps) {
+export default function DeviceCard({ device, showSerial = true, onStart, onEnableWireless, onDisconnect }: DeviceCardProps) {
   const isWireless = device.serial.includes(':') || device.serial.includes('.')
+
+  const handleWirelessAction = async () => {
+    if (isWireless) {
+      // Disconnect with confirmation
+      const confirmed = await window.mirrorControl.showConfirmDialog({
+        title: 'Disconnect Device',
+        message: `Are you sure you want to disconnect ${device.model || 'this device'} from wireless?`,
+        buttons: ['Cancel', 'Disconnect'],
+      })
+      if (confirmed) {
+        onDisconnect?.()
+      }
+    } else {
+      // Enable wireless
+      onEnableWireless?.()
+    }
+  }
 
   return (
     <Card className="hover:shadow-md transition-shadow">
@@ -35,15 +53,13 @@ export default function DeviceCard({ device, showSerial = true, onStart, onEnabl
 
         {/* Status & Actions */}
         <div className="flex items-center gap-2">
-          {isWireless ? (
-            <Button size="icon" variant="ghost" onClick={onEnableWireless} title="Disconnect Wireless">
+          <Button size="icon" variant="ghost" onClick={handleWirelessAction} title={isWireless ? "Disconnect Wireless" : "Connect Wireless"}>
+            {isWireless ? (
                <WifiOff className="w-5 h-5 text-red-500 hover:text-red-500/50" />
-            </Button>
-          ) : (
-            <Button size="icon" variant="ghost" onClick={onEnableWireless} title="Connect Wireless">
+            ) : (
                <Wifi className="w-5 h-5 text-blue-500 hover:text-blue-500/50" />
-            </Button>
-          )}
+            )}
+          </Button>
           <Button size="icon" onClick={onStart}>
             <Play className="w-4 h-4" />
           </Button>
