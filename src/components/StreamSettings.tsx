@@ -134,21 +134,7 @@ export function StreamSettings({
           </div>
 
           {/* Audio Decoder (Codec) */}
-          <div className="space-y-2">
-            <label className="text-xs font-medium text-zinc-400 uppercase tracking-wider">Audio Decoder</label>
-            <div className="relative">
-              <select 
-                value={audioCodec}
-                onChange={(e) => setAudioCodec(e.target.value as AudioCodec)}
-                className="w-full bg-zinc-900 hover:bg-zinc-800 transition-colors text-zinc-100 text-sm rounded-lg pl-3 pr-8 py-2.5 appearance-none border border-zinc-800 focus:border-zinc-700 focus:ring-1 focus:ring-zinc-700 outline-none"
-              >
-                <option value="raw">Raw PCM (Best Latency)</option>
-                <option value="aac">AAC (Compressed)</option>
-                <option value="opus">Opus (Compressed)</option>
-              </select>
-              <ChevronDown className="absolute right-3 top-3 w-4 h-4 text-zinc-500 pointer-events-none" />
-            </div>
-          </div>
+          {/* s */}
         </div>
 
         <Button 

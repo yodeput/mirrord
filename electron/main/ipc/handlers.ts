@@ -542,10 +542,11 @@ export function registerIpcHandlers(
       // Capture screenshot as PNG
       const buffer = await adbManager.execBuffer(['exec-out', 'screencap', '-p'], serial)
       
-      // Generate filename
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)
-      const deviceName = (model || serial).replace(/[^a-zA-Z0-9]/g, '_')
-      const filename = `Screenshot_${deviceName}_${timestamp}.png`
+      // Generate filename with local time
+      const now = new Date()
+      const pad = (n: number) => n.toString().padStart(2, '0')
+      const timestamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}-${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}`
+      const filename = `mirrord-screenshot-${timestamp}.png`
       
       const downloadPath = app.getPath('downloads')
       const filePath = path.join(downloadPath, filename)

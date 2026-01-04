@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import PCMPlayer from 'pcm-player'
 
 /**
@@ -17,6 +17,8 @@ export function useAudioStream(options: {
   const { enabled = true, volume = 1.0, audioCodec = 'raw' } = options
   
   const playerRef = useRef<PCMPlayer | null>(null)
+  const audioContextRef = useRef<AudioContext | null>(null)
+  const recordingDestinationRef = useRef<MediaStreamAudioDestinationNode | null>(null)
   const [isPlaying, setIsPlaying] = useState(false)
   const [error, setError] = useState<string | null>(null)
   
@@ -26,6 +28,8 @@ export function useAudioStream(options: {
         playerRef.current.destroy()
         playerRef.current = null
       }
+      audioContextRef.current = null
+      recordingDestinationRef.current = null
       setIsPlaying(false)
       return
     }
@@ -45,6 +49,19 @@ export function useAudioStream(options: {
       
       // Set initial volume
       playerRef.current.volume(volume)
+      
+      // Store AudioContext reference for recording
+      if ((playerRef.current as any).audioCtx) {
+        audioContextRef.current = (playerRef.current as any).audioCtx
+        
+        // Create a MediaStreamDestination for recording
+        recordingDestinationRef.current = audioContextRef.current!.createMediaStreamDestination()
+        
+        // Connect the gainNode to the recording destination as well
+        if ((playerRef.current as any).gainNode) {
+          (playerRef.current as any).gainNode.connect(recordingDestinationRef.current)
+        }
+      }
       
       // EXTREMELY IMPORTANT: Resume AudioContext after a short delay
       // Browsers often suspend it until a user gesture or mirror start
@@ -108,6 +125,8 @@ export function useAudioStream(options: {
         playerRef.current.destroy()
         playerRef.current = null
       }
+      audioContextRef.current = null
+      recordingDestinationRef.current = null
       setIsPlaying(false)
     }
   }, [enabled, audioCodec])
@@ -119,6 +138,14 @@ export function useAudioStream(options: {
     }
   }, [volume])
   
+  // Get audio stream for recording
+  const getRecordingStream = useCallback(() => {
+    if (recordingDestinationRef.current) {
+      return recordingDestinationRef.current.stream
+    }
+    return null
+  }, [])
+  
   return {
     isPlaying,
     error,
@@ -126,8 +153,7 @@ export function useAudioStream(options: {
       if (playerRef.current) {
         playerRef.current.volume(v)
       }
-    }
+    },
+    getRecordingStream
   }
 }
-
-

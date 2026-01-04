@@ -36,8 +36,11 @@ export default function DevicePage() {
   
   // Recording state
   const [isRecording, setIsRecording] = useState(false)
+  const [recordingTime, setRecordingTime] = useState(0)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const recordedChunksRef = useRef<Blob[]>([])
+  const recordingTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const recordingFormatRef = useRef<{ mimeType: string; extension: string }>({ mimeType: 'video/webm', extension: 'webm' })
   
   const videoRef = useRef<HTMLVideoElement>(null)
   
@@ -50,7 +53,7 @@ export default function DevicePage() {
   })
 
   // Audio stream (Android 11+ required)
-  const { isPlaying: audioPlaying } = useAudioStream({
+  const { isPlaying: audioPlaying, getRecordingStream } = useAudioStream({
     enabled: connected && !audioMuted,
     audioCodec: selectedAudioCodec,
     volume: audioMuted ? 0 : 1
@@ -290,10 +293,41 @@ export default function DevicePage() {
     if (!videoRef.current) return
     
     try {
-      const stream = (videoRef.current as any).captureStream()
-      const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: 'video/webm;codecs=vp9'
-      })
+      const videoStream = (videoRef.current as any).captureStream()
+      const audioStream = getRecordingStream()
+      
+      // Combine video and audio tracks
+      const tracks = [
+        ...videoStream.getVideoTracks(),
+        ...(audioStream ? audioStream.getAudioTracks() : [])
+      ]
+      const combinedStream = new MediaStream(tracks)
+      
+      // Determine best format with fallback: MP4 first, then WebM
+      const hasAudio = !!audioStream
+      const formatCandidates = hasAudio
+        ? [
+            { mimeType: 'video/mp4;codecs=avc1.42E01E,mp4a.40.2', extension: 'mp4' },
+            { mimeType: 'video/webm;codecs=vp9,opus', extension: 'webm' },
+            { mimeType: 'video/webm;codecs=vp8,opus', extension: 'webm' },
+          ]
+        : [
+            { mimeType: 'video/mp4;codecs=avc1.42E01E', extension: 'mp4' },
+            { mimeType: 'video/webm;codecs=vp9', extension: 'webm' },
+            { mimeType: 'video/webm;codecs=vp8', extension: 'webm' },
+          ]
+      
+      let selectedFormat = formatCandidates.find(f => MediaRecorder.isTypeSupported(f.mimeType))
+      
+      if (!selectedFormat) {
+        // Ultimate fallback
+        selectedFormat = { mimeType: 'video/webm', extension: 'webm' }
+      }
+      
+      recordingFormatRef.current = selectedFormat
+      console.log(`[DevicePage] Using recording format: ${selectedFormat.mimeType}`)
+      
+      const mediaRecorder = new MediaRecorder(combinedStream, { mimeType: selectedFormat.mimeType })
       
       recordedChunksRef.current = []
       mediaRecorder.ondataavailable = (e) => {
@@ -309,7 +343,17 @@ export default function DevicePage() {
       mediaRecorder.start()
       mediaRecorderRef.current = mediaRecorder
       setIsRecording(true)
-      console.log('[DevicePage] Recording started')
+      
+      // Play start sound
+      new Audio('/sound/start.mp3').play().catch(() => {})
+      
+      // Start timer
+      setRecordingTime(0)
+      recordingTimerRef.current = setInterval(() => {
+        setRecordingTime(prev => prev + 1)
+      }, 1000)
+      
+      console.log(`[DevicePage] Recording started (audio: ${hasAudio ? 'yes' : 'no'}, format: ${selectedFormat.extension})`)
     } catch (e) {
       console.error('[DevicePage] Failed to start recording:', e)
     }
@@ -319,6 +363,17 @@ export default function DevicePage() {
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       mediaRecorderRef.current.stop()
       setIsRecording(false)
+      
+      // Play stop sound
+      new Audio('/sound/stop.mp3').play().catch(() => {})
+      
+      // Stop timer
+      if (recordingTimerRef.current) {
+        clearInterval(recordingTimerRef.current)
+        recordingTimerRef.current = null
+      }
+      setRecordingTime(0)
+      
       console.log('[DevicePage] Recording stopped')
     }
   }
@@ -326,22 +381,34 @@ export default function DevicePage() {
   const saveRecording = () => {
     if (recordedChunksRef.current.length === 0) return
     
-    const blob = new Blob(recordedChunksRef.current, {
-      type: 'video/webm'
-    })
+    const { mimeType, extension } = recordingFormatRef.current
+    
+    const blob = new Blob(recordedChunksRef.current, { type: mimeType })
     
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
+    
+    // Generate local time filename
+    const now = new Date()
+    const pad = (n: number) => n.toString().padStart(2, '0')
+    const timestamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}-${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}`
+    
     a.href = url
-    a.download = `recording-${model}-${timestamp}.webm`
+    a.download = `mirrord-recording-${timestamp}.${extension}`
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)
     URL.revokeObjectURL(url)
     
     recordedChunksRef.current = []
-    console.log('[DevicePage] Recording saved')
+    console.log(`[DevicePage] Recording saved as ${extension}`)
+  }
+
+  // Format seconds to MM:SS
+  const formatRecordingTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60).toString().padStart(2, '0')
+    const secs = (seconds % 60).toString().padStart(2, '0')
+    return `${mins}:${secs}`
   }
 
 
@@ -416,6 +483,16 @@ export default function DevicePage() {
               </div>
             </div>
           )}
+          
+          {/* Recording Indicator Overlay */}
+          {isRecording && (
+            <div className="absolute top-4 left-4 flex items-center gap-2 bg-black/70 backdrop-blur-sm px-3 py-1.5 rounded-full z-40 border border-red-500/30">
+              <span className="w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse" />
+              <span className="text-white text-xs font-mono font-medium">
+                REC {formatRecordingTime(recordingTime)}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Bottom Nav */}
@@ -455,6 +532,9 @@ export default function DevicePage() {
               // Flash effect
               setScreenshotFlash(true)
               setTimeout(() => setScreenshotFlash(false), 200)
+              
+              // Play screenshot sound
+              new Audio('/sound/screenshot.mp3').play().catch(() => {})
               
               const { filePath, dataUrl } = await window.mirrorControl.takeScreenshot(serial, model)
               console.log('[DevicePage] Screenshot saved:', filePath)
