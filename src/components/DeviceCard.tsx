@@ -1,4 +1,4 @@
-import { Wifi, Play, Phone, Smartphone, UsbIcon, WifiOff } from 'lucide-react'
+import { Wifi, Play, Square, Phone, Smartphone, UsbIcon, WifiOff } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import type { DeviceInfo } from '@/hooks/useDevices'
@@ -7,11 +7,12 @@ interface DeviceCardProps {
   device: DeviceInfo
   showSerial?: boolean
   onStart: () => void
+  onStop?: () => void
   onEnableWireless?: () => void
   onDisconnect?: () => void
 }
 
-export default function DeviceCard({ device, showSerial = true, onStart, onEnableWireless, onDisconnect }: DeviceCardProps) {
+export default function DeviceCard({ device, showSerial = true, onStart, onStop, onEnableWireless, onDisconnect }: DeviceCardProps) {
   const isWireless = device.serial.includes(':') || device.serial.includes('.')
 
   const handleWirelessAction = async () => {
@@ -60,8 +61,8 @@ export default function DeviceCard({ device, showSerial = true, onStart, onEnabl
                <Wifi className="w-5 h-5 text-blue-500 hover:text-blue-500/50" />
             )}
           </Button>
-          <Button size="icon" onClick={onStart}>
-            <Play className="w-4 h-4" />
+          <Button size="icon" onClick={device.mirroring ? onStop : onStart}>
+            {device.mirroring ? <Square className="w-4 h-4 fill-current animate-pulse" /> : <Play className="w-4 h-4 fill-current" />}
           </Button>
         </div>
       </CardContent>

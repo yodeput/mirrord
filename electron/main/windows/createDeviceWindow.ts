@@ -40,8 +40,9 @@ export function createDeviceWindow(
       nodeIntegration: false,
       sandbox: false,
     },
-    titleBarStyle: 'hiddenInset',
-    trafficLightPosition: { x: 15, y: 12 },
+    titleBarStyle: 'hidden',
+    trafficLightPosition: { x: -100, y: -100 },
+    frame: false,
     icon: path.join(__dirname, '../../resources/icon.png'),
   })
 
@@ -83,8 +84,19 @@ export function createDeviceWindow(
     deviceWindow.webContents.send('window:fullscreen-change', false)
   })
 
+  // Maximize events
+  deviceWindow.on('maximize', () => {
+    deviceWindow.webContents.send('window:maximized')
+  })
+
+  deviceWindow.on('unmaximize', () => {
+    deviceWindow.webContents.send('window:unmaximized')
+  })
+
   deviceWindow.webContents.on('did-finish-load', () => {
     console.log('[createDeviceWindow] Content finished loading')
+    // Re-set title after page load (overrides HTML <title>)
+    deviceWindow.setTitle(device.model || device.serial)
   })
 
   deviceWindow.webContents.on('did-fail-load', (e, code, desc) => {

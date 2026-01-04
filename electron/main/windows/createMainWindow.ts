@@ -16,7 +16,7 @@ export function createMainWindow(): BrowserWindow {
     maxWidth: 600,
     maxHeight: 800,
     resizable: false,
-    title: '.mirrord',
+    title: 'Mirrord',
     backgroundColor: '#f8fafc',
     webPreferences: {
       preload: path.join(__dirname, '../preload/index.cjs'),
@@ -24,8 +24,9 @@ export function createMainWindow(): BrowserWindow {
       nodeIntegration: false,
       sandbox: false,
     },
-    titleBarStyle: 'hiddenInset',
-    trafficLightPosition: { x: 15, y: 15 },
+    titleBarStyle: 'hidden',
+    trafficLightPosition: { x: -100, y: -100 },
+    frame: false,
     icon: path.join(__dirname, '../../resources/icon.png'),
   })
 

@@ -1,7 +1,7 @@
 {
     "name": "mirrord",
     "version": "1.1.1",
-    "description": ".mirrord Desktop Client",
+    "description": "Mirrord - Android Device Mirror",
     "author": "Yogi Dewansyah <yodeput@gmail.com>",
     "repository": {
         "type": "git",
@@ -12,7 +12,7 @@
     "type": "module",
     "scripts": {
         "dev": "vite",
-        "build": "tsc && vite build && electron-builder",
+        "build": "tsc && vite build",
         "preview": "vite preview",
         "publish": "node build-config/build.js target=dir publish=always",
         "publish:win:setup:x64": "node build-config/build.js target=win arch=x64 type=setup publish=always",

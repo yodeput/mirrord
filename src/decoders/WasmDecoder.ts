@@ -2,7 +2,7 @@ import JMuxer from 'jmuxerJs'
 import { IVideoDecoder } from './types'
 
 export class WasmDecoder implements IVideoDecoder {
-  private jmuxer: JMuxer | null = null
+  private jmuxer: any | null = null
 
   init(videoElement: HTMLVideoElement): void {
     try {

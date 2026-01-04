@@ -84,20 +84,21 @@ export function DeviceSidebar({
           <VolumeXIcon className="w-5 h-5" />
         </button>
         
-        <button 
+        {/* Disabled due to inconsitent behavior */}
+        {/* <button 
           onClick={onKeyboardToggle}
           title="Toggle Keyboard"
           className={`p-2 hover:bg-zinc-800 rounded-lg transition-colors ${showKeyboard ? 'text-primary' : 'text-zinc-400 hover:text-white'}`}
         >
           <KeyboardIcon className="w-5 h-5" />
-        </button>
+        </button> 
         <button 
           onClick={onRotate}
           title="Rotate Screen"
           className="p-2 hover:bg-zinc-800 rounded-lg text-zinc-400 hover:text-white transition-colors"
         >
           <RotateCcwIcon className="w-5 h-5" />
-        </button>
+        </button> */}
         <button 
           onClick={onPowerToggle}
           title={screenOn ? 'Turn Screen Off' : 'Turn Screen On'}

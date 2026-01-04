@@ -56,8 +56,10 @@ export function registerIpcHandlers(
   }
 
   // Auto-connect to previously known wireless devices on startup
+  const autoWireless = settingsManager.get('auto_connect_wireless')
   const knownIps = settingsManager.get('known_wireless_ips') || []
-  if (Array.isArray(knownIps) && knownIps.length > 0) {
+  
+  if (autoWireless && Array.isArray(knownIps) && knownIps.length > 0) {
     console.log(`[AdbManager] Trying to reconnect ${knownIps.length} known wireless devices...`)
     knownIps.forEach(ip => {
       adbManager.connect(ip).catch(() => { /* Silent fail for disconnected devices */ })
@@ -155,8 +157,12 @@ export function registerIpcHandlers(
   });
 
   // Get list of devices
-  ipcMain.handle('adb:get-devices', async (): Promise<DeviceInfo[]> => {
-    return adbManager.getDevices()
+  ipcMain.handle('adb:get-devices', async (): Promise<any[]> => {
+    const devices = await adbManager.getDevices()
+    return devices.map(d => ({
+       ...d,
+       mirroring: deviceWindows.has(d.serial)
+    }))
   })
 
   // Start mirroring a device
@@ -592,8 +598,9 @@ export function registerIpcHandlers(
       const win = BrowserWindow.fromWebContents(event.sender)
       if (win) {
         // Calculate window size to fit screen while maintaining aspect ratio of VIDEO
-        const primaryDisplay = screen.getPrimaryDisplay()
-        const workArea = primaryDisplay.workArea
+        // Calculate window size to fit screen while maintaining aspect ratio of VIDEO
+        const display = screen.getDisplayMatching(win.getBounds())
+        const workArea = display.workArea
 
         // Max window limits
         const maxHeight = workArea.height * 0.9
@@ -741,5 +748,24 @@ export function registerIpcHandlers(
     })
     
     return result.response === confirmId
+  })
+  // Window Controls
+  ipcMain.handle('window:minimize', (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender)
+    win?.minimize()
+  })
+
+  ipcMain.handle('window:toggle-maximize', (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender)
+    if (win?.isFullScreen()) {
+      win.setFullScreen(false)
+    } else {
+      win?.setFullScreen(true)
+    }
+  })
+
+  ipcMain.handle('window:close', (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender)
+    win?.close()
   })
 }

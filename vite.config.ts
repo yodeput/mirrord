@@ -13,6 +13,7 @@ export default defineConfig(({ command }) => {
   const sourcemap = isServe
 
   return {
+    base: './',
     resolve: {
       alias: {
         '@': path.join(__dirname, 'src'),

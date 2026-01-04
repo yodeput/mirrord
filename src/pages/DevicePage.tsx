@@ -8,6 +8,7 @@ import { StreamSettings, VideoResolution, AudioCodec, VideoMaxBitrate, VideoDeco
 import { ArrowLeft, Circle, Square, X, ChevronsLeft, ChevronsRight, Usb, Wifi } from 'lucide-react'
 import { DecoderType } from '@/decoders/Factory'
 import { DeviceSidebar } from '@/components/DeviceSidebar'
+import { WindowControls } from '@/components/WindowControls'
 
 
 export default function DevicePage() {
@@ -246,7 +247,7 @@ export default function DevicePage() {
 
   // Window Resize Management
   const initialResizeDone = useRef(false)
-  useEffect(() => {
+  const performResize = () => {
     if (dimensions) {
       const isRotated = rotation === 90 || rotation === 270
       const currentWidth = isRotated ? dimensions.height : dimensions.width
@@ -259,7 +260,19 @@ export default function DevicePage() {
         })
         .catch((e: Error) => console.error('[DevicePage] Resize failed:', e))
     }
+  }
+
+  // Initial and Dimension-based resize
+  useEffect(() => {
+    performResize()
   }, [dimensions, rotation])
+
+  // Restore size when exiting fullscreen
+  useEffect(() => {
+    if (!isFullscreen && initialResizeDone.current) {
+      performResize()
+    }
+  }, [isFullscreen])
 
   // Sidebar Toggle - Sync with Window Resize
   const prevSidebarCollapsed = useRef(sidebarCollapsed)
@@ -417,26 +430,25 @@ export default function DevicePage() {
       {/* Device Screen + Controls */}
       <div className="flex-1 flex flex-col relative overflow-hidden bg-black">
         {/* Title Bar */}
-        {!isFullscreen && (
-          <div className="h-10 bg-zinc-900 titlebar-drag flex items-center px-3 border-b border-white/5">
-            <div className={`flex items-center gap-2 flex-1 ml-[70px] truncate ${sidebarCollapsed ? '' : 'mr-12'}`}>
-              {(serial.includes('.') || serial.includes(':')) ? (
-                <Wifi className="w-3.5 h-3.5 text-zinc-500" />
-              ) : (
-                <Usb className="w-3.5 h-3.5 text-zinc-500" />
-              )}
-              <span className="font-mono text-xs text-zinc-400 truncate">{model}</span>
-            </div>
-            {!loading && !initialLoading && (
-              <button
-                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-                className="titlebar-no-drag p-1.5 hover:bg-zinc-700 rounded text-zinc-400 hover:text-white transition-colors"
-              >
-                {sidebarCollapsed ? <ChevronsRight className="w-4 h-4" /> : <ChevronsLeft className="w-4 h-4" />}
-              </button>
+        <div className="h-10 bg-zinc-900 titlebar-drag flex items-center border-b border-white/5">
+          <div className={`flex items-center gap-2 flex-1 truncate pl-3`}>
+            {(serial.includes('.') || serial.includes(':')) ? (
+              <Wifi className="w-4 h-4 text-zinc-500" />
+            ) : (
+              <Usb className="w-4 h-4 text-zinc-500" />
             )}
+            <span className="font-mono text-xs text-zinc-400 truncate">{model}</span>
           </div>
-        )}
+          {!loading && !initialLoading && (
+            <button
+              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+              className="titlebar-no-drag p-1.5 hover:bg-zinc-700 rounded text-zinc-400 hover:text-white transition-colors mr-2"
+            >
+              {sidebarCollapsed ? <ChevronsRight className="w-4 h-4" /> : <ChevronsLeft className="w-4 h-4" />}
+            </button>
+          )}
+          <WindowControls />
+        </div>
 
         {/* Video Container */}
         <div className="flex-1 relative bg-black overflow-hidden select-none">

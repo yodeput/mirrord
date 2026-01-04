@@ -494,4 +494,11 @@ export class AdbManager extends EventEmitter {
         return false;
     }
   }
+  async getVolume(serial: string): Promise<number> {
+    return 80 // Default stub
+  }
+
+  async setVolume(serial: string, percent: number): Promise<void> {
+    // Stub
+  }
 }

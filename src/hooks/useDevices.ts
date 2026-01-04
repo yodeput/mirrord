@@ -6,6 +6,7 @@ export interface DeviceInfo {
   model?: string
   product?: string
   transport_id?: string
+  mirroring?: boolean
 }
 
 export function useDevices() {
@@ -46,9 +47,19 @@ export function useDevices() {
       setDevices(prev => prev.filter(d => d.serial !== serial))
     })
 
+    const unsubMirrorStart = window.mirrorControl.onMirrorStarted((serial: string) => {
+      setDevices(prev => prev.map(d => d.serial === serial ? { ...d, mirroring: true } : d))
+    })
+
+    const unsubMirrorStop = window.mirrorControl.onMirrorStopped((serial: string) => {
+      setDevices(prev => prev.map(d => d.serial === serial ? { ...d, mirroring: false } : d))
+    })
+
     return () => {
       unsubConnect()
       unsubDisconnect()
+      unsubMirrorStart()
+      unsubMirrorStop()
     }
   }, [refresh])
 

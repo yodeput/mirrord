@@ -21,21 +21,21 @@ function setupAdbEvents(): void {
     console.log(`[Main] Device connected: ${device.serial}`)
     // We can get the main window from the factory or reference
     const wins = BrowserWindow.getAllWindows()
-    const mainWin = wins.find(w => w.title === '.mirrord')
+    const mainWin = wins.find(w => w.title === 'Mirrord')
     mainWin?.webContents.send('device-connected', device)
   })
 
   adbManager.on('device-disconnected', (serial: string) => {
     console.log(`[Main] Device disconnected: ${serial}`)
     const wins = BrowserWindow.getAllWindows()
-    const mainWin = wins.find(w => w.title === '.mirrord')
+    const mainWin = wins.find(w => w.title === 'Mirrord')
     mainWin?.webContents.send('device-disconnected', serial)
     
     // Auto-close device window if open
     const deviceWin = deviceWindows.get(serial)
     if (deviceWin) {
-      console.log(`[Main] Device disconnected: ${serial}. Keeping window open for debugging.`)
-      // deviceWin.close()
+      console.log(`[Main] Device disconnected: ${serial}. Closing window.`)
+      deviceWin.close()
     }
   })
 

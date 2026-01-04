@@ -10,6 +10,7 @@ import DeviceCard from '@/components/DeviceCard'
 import WirelessDialog from '@/components/WirelessDialog'
 import SettingsDialog from '@/components/SettingsDialog'
 import { Skeleton } from '@/components/ui/skeleton'
+import { WindowControls } from '@/components/WindowControls'
 // [Removed UpdateDialog import]
 
 export default function HomePage() {
@@ -215,9 +216,9 @@ export default function HomePage() {
   return (
     <div className="min-h-screen flex flex-col">
       {/* Title Bar */}
-      <div className="h-12 titlebar-drag flex items-center justify-center border-b bg-background/80 backdrop-blur-sm">
-        <span className="font-semibold text-sm text-primary">.mirrord</span>
-        <div className="absolute right-4 flex items-center gap-1 titlebar-no-drag">
+      <div className="h-10 titlebar-drag flex items-center justify-between border-b border-background/5">
+        <span className="font-semibold text-sm text-primary ml-3">Mirrord</span>
+        <div className="flex items-center gap-1 titlebar-no-drag">
           <button 
             className="p-2 hover:bg-muted rounded-md"
             onClick={toggleTheme}
@@ -236,6 +237,9 @@ export default function HomePage() {
           >
             <Settings className="w-4 h-4 text-zinc-500" />
           </button>
+          <div className="border-l h-6 flex items-centers">
+          <WindowControls showMaximize={false} />
+          </div>
         </div>
       </div>
 
@@ -283,6 +287,13 @@ export default function HomePage() {
                 device={device}
                 showSerial={showSerial}
                 onStart={() => handleStartMirror(device)}
+                onStop={async () => {
+                  try {
+                    await window.mirrorControl.stopMirror(device.serial)
+                  } catch (e) {
+                    console.error('Failed to stop mirror:', e)
+                  }
+                }}
                 onEnableWireless={() => handleEnableWireless(device)}
                 onDisconnect={async () => {
                   try {
@@ -315,7 +326,7 @@ export default function HomePage() {
 
       {/* Footer */}
       <div className="p-4 pt-0 flex items-center justify-center gap-3 text-sm text-muted-foreground">
-        <span>.mirrord v{version}</span>
+        <span>Mirrord v{version}</span>
         
         {downloadingUpdate ? (
            <span className="text-primary font-medium">Downloading... {updateProgress}%</span>

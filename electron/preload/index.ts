@@ -188,10 +188,53 @@ const api = {
   // Volume control
   getVolume: (serial: string) => ipcRenderer.invoke('device:get-volume', serial),
   setVolume: (serial: string, percent: number) => ipcRenderer.invoke('device:set-volume', serial, percent),
+
+  // Window Controls
+  minimize: () => ipcRenderer.invoke('window:minimize'),
+  toggleMaximize: () => ipcRenderer.invoke('window:toggle-maximize'),
+  close: () => ipcRenderer.invoke('window:close'),
+
+  onMaximizeChange: (callback: (isMaximized: boolean) => void) => {
+    const maxListener = () => callback(true)
+    const unmaxListener = () => callback(false)
+    ipcRenderer.on('window:maximized', maxListener)
+    ipcRenderer.on('window:unmaximized', unmaxListener)
+    return () => {
+      ipcRenderer.removeListener('window:maximized', maxListener)
+      ipcRenderer.removeListener('window:unmaximized', unmaxListener)
+    }
+  },
 };
 
 // Expose API to renderer
 contextBridge.exposeInMainWorld('mirrorControl', api);
+
+function domReady(condition: DocumentReadyState[] = ['complete', 'interactive']) {
+  return new Promise(resolve => {
+    if (condition.includes(document.readyState)) {
+      resolve(true)
+    } else {
+      document.addEventListener('readystatechange', () => {
+        if (condition.includes(document.readyState)) {
+          resolve(true)
+        }
+      })
+    }
+  })
+}
+
+const safeDOM = {
+  append(parent: HTMLElement, child: HTMLElement) {
+    if (!Array.from(parent.children).find(e => e === child)) {
+      return parent.appendChild(child)
+    }
+  },
+  remove(parent: HTMLElement, child: HTMLElement) {
+    if (Array.from(parent.children).find(e => e === child)) {
+      return parent.removeChild(child)
+    }
+  },
+}
 
 // Type declaration for window
 declare global {
