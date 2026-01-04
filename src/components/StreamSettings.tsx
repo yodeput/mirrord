@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Settings, ChevronDown } from 'lucide-react'
 import {
   Dialog,
@@ -20,14 +20,18 @@ export type VideoDecoder =
   | 'webcodec-sw' // WebCodec Software
   | 'webcodec-hw' // WebCodec Hardware
 
+export type AudioCodec = 'raw' | 'aac' | 'opus'
+
 interface StreamSettingsProps {
   initialBitrate?: VideoMaxBitrate
   initialResolution?: VideoResolution
   initialDecoder?: VideoDecoder
+  initialAudioCodec?: AudioCodec
   onSettingsChange: (settings: {
     bitrate: VideoMaxBitrate
     resolution: VideoResolution
     decoder: VideoDecoder
+    audioCodec: AudioCodec
   }) => void
 }
 
@@ -35,15 +39,27 @@ export function StreamSettings({
   initialBitrate = '10M',
   initialResolution = '1080p',
   initialDecoder = 'wasm',
+  initialAudioCodec = 'raw',
   onSettingsChange 
 }: StreamSettingsProps) {
   const [open, setOpen] = useState(false)
   const [bitrate, setBitrate] = useState<VideoMaxBitrate>(initialBitrate)
   const [resolution, setResolution] = useState<VideoResolution>(initialResolution)
   const [decoder, setDecoder] = useState<VideoDecoder>(initialDecoder)
+  const [audioCodec, setAudioCodec] = useState<AudioCodec>(initialAudioCodec)
+
+  // Sync state with props when dialog opens or when props change externally
+  useEffect(() => {
+    if (open) {
+      setBitrate(initialBitrate)
+      setResolution(initialResolution)
+      setDecoder(initialDecoder)
+      setAudioCodec(initialAudioCodec)
+    }
+  }, [open, initialBitrate, initialResolution, initialDecoder, initialAudioCodec])
 
   const handleApply = () => {
-    onSettingsChange({ bitrate, resolution, decoder })
+    onSettingsChange({ bitrate, resolution, decoder, audioCodec })
     setOpen(false)
   }
 
@@ -100,9 +116,9 @@ export function StreamSettings({
             </div>
           </div>
 
-          {/* Decoder */}
+          {/* Video Decoder */}
           <div className="space-y-2">
-            <label className="text-xs font-medium text-zinc-400 uppercase tracking-wider">Decoder</label>
+            <label className="text-xs font-medium text-zinc-400 uppercase tracking-wider">Video Decoder</label>
             <div className="relative">
               <select 
                 value={decoder}
@@ -112,6 +128,23 @@ export function StreamSettings({
                 <option value="wasm">WebAssembly (Stable)</option>
                 <option value="webcodec-sw">WebCodec Software</option>
                 <option value="webcodec-hw">WebCodec Hardware</option>
+              </select>
+              <ChevronDown className="absolute right-3 top-3 w-4 h-4 text-zinc-500 pointer-events-none" />
+            </div>
+          </div>
+
+          {/* Audio Decoder (Codec) */}
+          <div className="space-y-2">
+            <label className="text-xs font-medium text-zinc-400 uppercase tracking-wider">Audio Decoder</label>
+            <div className="relative">
+              <select 
+                value={audioCodec}
+                onChange={(e) => setAudioCodec(e.target.value as AudioCodec)}
+                className="w-full bg-zinc-900 hover:bg-zinc-800 transition-colors text-zinc-100 text-sm rounded-lg pl-3 pr-8 py-2.5 appearance-none border border-zinc-800 focus:border-zinc-700 focus:ring-1 focus:ring-zinc-700 outline-none"
+              >
+                <option value="raw">Raw PCM (Best Latency)</option>
+                <option value="aac">AAC (Compressed)</option>
+                <option value="opus">Opus (Compressed)</option>
               </select>
               <ChevronDown className="absolute right-3 top-3 w-4 h-4 text-zinc-500 pointer-events-none" />
             </div>

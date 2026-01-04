@@ -2,11 +2,13 @@ import { useEffect, useRef, useMemo, useState } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { useVideoStream } from '@/hooks/useVideoStream'
 import { useInputHandler } from '@/hooks/useInputHandler'
+import { useAudioStream } from '@/hooks/useAudioStream'
 import { ScrcpyControl } from '@/scripts/ScrcpyControl'
-import { StreamSettings, VideoResolution } from '@/components/StreamSettings'
+import { StreamSettings, VideoResolution, AudioCodec, VideoMaxBitrate, VideoDecoder } from '@/components/StreamSettings'
 import { ArrowLeft, Circle, Square, X, ChevronsLeft, ChevronsRight, Usb, Wifi } from 'lucide-react'
 import { DecoderType } from '@/decoders/Factory'
 import { DeviceSidebar } from '@/components/DeviceSidebar'
+
 
 export default function DevicePage() {
   const [searchParams] = useSearchParams()
@@ -29,8 +31,13 @@ export default function DevicePage() {
   const [screenshotFlash, setScreenshotFlash] = useState(false)
   const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null)
   const [screenshotFilePath, setScreenshotFilePath] = useState<string | null>(null)
-
-
+  const [audioMuted, setAudioMuted] = useState(false)
+  const [selectedAudioCodec, setSelectedAudioCodec] = useState<AudioCodec>((searchParams.get('audioCodec') as AudioCodec) || 'raw')
+  
+  // Recording state
+  const [isRecording, setIsRecording] = useState(false)
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const recordedChunksRef = useRef<Blob[]>([])
   
   const videoRef = useRef<HTMLVideoElement>(null)
   
@@ -40,6 +47,13 @@ export default function DevicePage() {
     videoRef,
     manual: true,
     decoderType: selectedDecoder
+  })
+
+  // Audio stream (Android 11+ required)
+  const { isPlaying: audioPlaying } = useAudioStream({
+    enabled: connected && !audioMuted,
+    audioCodec: selectedAudioCodec,
+    volume: audioMuted ? 0 : 1
   })
   
   const parseBitrate = (bitrate: string) => {
@@ -53,7 +67,12 @@ export default function DevicePage() {
     return 0
   }
 
-  const handleSettingsChange = async (settings: { bitrate: string, resolution: string, decoder: DecoderType }) => {
+  const handleSettingsChange = async (settings: { 
+    bitrate: VideoMaxBitrate, 
+    resolution: VideoResolution, 
+    decoder: VideoDecoder,
+    audioCodec: AudioCodec
+  }) => {
     console.log('[DevicePage] Applying settings (via restart):', settings)
     setInitialLoading(true)
     
@@ -63,8 +82,14 @@ export default function DevicePage() {
         maxSize: parseResolution(settings.resolution),
         resolution: settings.resolution,
         bitrateValue: settings.bitrate,
-        decoder: settings.decoder
+        decoder: settings.decoder,
+        audioCodec: settings.audioCodec
       })
+      
+      // Update URL for persistence
+      navigate(`?serial=${serial}&model=${model}&bitrate=${settings.bitrate}&resolution=${settings.resolution}&decoder=${settings.decoder}&audioCodec=${settings.audioCodec}`, { replace: true })
+      
+      setSelectedAudioCodec(settings.audioCodec as AudioCodec)
       
       setTimeout(() => {
         connect()
@@ -88,8 +113,21 @@ export default function DevicePage() {
     }
   }, [])
 
-  // Auto-connect after 1s
+  // Auto-connect and Sync URL params after 1s
   useEffect(() => {
+    // Populate missing URL params for persistence
+    const params = new URLSearchParams(searchParams)
+    let updated = false
+    
+    if (!params.has('bitrate')) { params.set('bitrate', '10M'); updated = true; }
+    if (!params.has('resolution')) { params.set('resolution', '1080p'); updated = true; }
+    if (!params.has('decoder')) { params.set('decoder', 'wasm'); updated = true; }
+    if (!params.has('audioCodec')) { params.set('audioCodec', 'raw'); updated = true; }
+    
+    if (updated) {
+      navigate(`?${params.toString()}`, { replace: true })
+    }
+
     const timer = setTimeout(() => {
       setInitialLoading(false)
       connect()
@@ -240,6 +278,72 @@ export default function DevicePage() {
     control?.setDisplayPower(newState)
   }
 
+  const handleRecordToggle = () => {
+    if (isRecording) {
+      stopRecording()
+    } else {
+      startRecording()
+    }
+  }
+
+  const startRecording = () => {
+    if (!videoRef.current) return
+    
+    try {
+      const stream = (videoRef.current as any).captureStream()
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType: 'video/webm;codecs=vp9'
+      })
+      
+      recordedChunksRef.current = []
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          recordedChunksRef.current.push(e.data)
+        }
+      }
+      
+      mediaRecorder.onstop = () => {
+        saveRecording()
+      }
+      
+      mediaRecorder.start()
+      mediaRecorderRef.current = mediaRecorder
+      setIsRecording(true)
+      console.log('[DevicePage] Recording started')
+    } catch (e) {
+      console.error('[DevicePage] Failed to start recording:', e)
+    }
+  }
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop()
+      setIsRecording(false)
+      console.log('[DevicePage] Recording stopped')
+    }
+  }
+
+  const saveRecording = () => {
+    if (recordedChunksRef.current.length === 0) return
+    
+    const blob = new Blob(recordedChunksRef.current, {
+      type: 'video/webm'
+    })
+    
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
+    a.href = url
+    a.download = `recording-${model}-${timestamp}.webm`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+    
+    recordedChunksRef.current = []
+    console.log('[DevicePage] Recording saved')
+  }
+
 
   return (
     <div className="min-h-screen bg-black flex overflow-hidden">
@@ -327,14 +431,17 @@ export default function DevicePage() {
       {/* Sidebar */}
       {!sidebarCollapsed && !loading && !initialLoading && (
         <DeviceSidebar 
+          serial={serial}
           isFullscreen={isFullscreen}
-          initialBitrate={bitrateParam || undefined}
-          initialResolution={resolutionParam || undefined}
-          initialDecoder={decoderParam || undefined}
+          initialBitrate={searchParams.get('bitrate') || '10M'}
+          initialResolution={searchParams.get('resolution') || '1080p'}
+          initialDecoder={selectedDecoder}
+          initialAudioCodec={selectedAudioCodec}
           onSettingsChange={handleSettingsChange}
           onVolumeUp={() => sendKey(24)}
           onVolumeDown={() => sendKey(25)}
-          onMute={() => sendKey(164)}
+          onMute={() => setAudioMuted(!audioMuted)}
+          audioMuted={audioMuted}
           onRotate={() => {
             setRotation(r => (r + 90) % 360)
             control?.rotateDevice()
@@ -363,7 +470,8 @@ export default function DevicePage() {
               console.error('[DevicePage] Screenshot failed:', e)
             }
           }}
-          onRecord={() => console.log('Record TBD')}
+          onRecord={handleRecordToggle}
+          isRecording={isRecording}
         />
       )}
     </div>

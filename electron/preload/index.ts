@@ -170,6 +170,12 @@ const api = {
     ipcRenderer.on('device:clipboard', listener);
     return () => { ipcRenderer.removeListener('device:clipboard', listener); };
   },
+
+  onAudioData: (callback: (data: Buffer) => void) => {
+    const listener = (_event: any, data: Buffer) => callback(data);
+    ipcRenderer.on('device:audio-data', listener);
+    return () => { ipcRenderer.removeListener('device:audio-data', listener); };
+  },
   
   // Settings
   getSetting: (key: string) => ipcRenderer.invoke('settings:get', key),
@@ -178,6 +184,10 @@ const api = {
   // Native Dialogs
   showConfirmDialog: (options: { title: string; message: string; buttons?: string[]; confirmId?: number; cancelId?: number }) => 
     ipcRenderer.invoke('dialog:show-confirm', options),
+
+  // Volume control
+  getVolume: (serial: string) => ipcRenderer.invoke('device:get-volume', serial),
+  setVolume: (serial: string, percent: number) => ipcRenderer.invoke('device:set-volume', serial, percent),
 };
 
 // Expose API to renderer

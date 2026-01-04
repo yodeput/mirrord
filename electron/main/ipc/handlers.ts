@@ -279,6 +279,7 @@ export function registerIpcHandlers(
         bitrateValue?: string
         resolution?: string
         decoder?: string
+        audioCodec?: 'raw' | 'aac' | 'opus'
       }
     ) => {
       console.log(`[IPC] Restarting mirror for ${serial} with options:`, options)
@@ -374,6 +375,13 @@ export function registerIpcHandlers(
         connection.on('clipboard', (text: string) => {
           try {
             event.sender.send('device:clipboard', text)
+          } catch (e) {}
+        })
+
+        // Handle audio data
+        connection.on('audio-data', (data: Buffer) => {
+          try {
+            event.sender.send('device:audio-data', data)
           } catch (e) {}
         })
 
@@ -653,6 +661,16 @@ export function registerIpcHandlers(
       return adbManager.getDeviceIp(serial)
     }
   )
+
+  // Get device volume
+  ipcMain.handle('device:get-volume', async (_event, serial: string) => {
+    return adbManager.getVolume(serial)
+  })
+
+  // Set device volume
+  ipcMain.handle('device:set-volume', async (_event, serial: string, percent: number) => {
+    return adbManager.setVolume(serial, percent)
+  })
 
   // Enable wireless (TCPIP) + Auto-Connect
   ipcMain.handle(

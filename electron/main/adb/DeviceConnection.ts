@@ -24,6 +24,7 @@ export interface ScrcpyMetadata {
 export class DeviceConnection extends EventEmitter {
   private videoSocket: net.Socket | null = null;
   private controlSocket: net.Socket | null = null;
+  private audioSocket: net.Socket | null = null;
   private isConnected = false;
   private serial: string;
   private port: number;
@@ -56,19 +57,38 @@ export class DeviceConnection extends EventEmitter {
     this.videoBuffer = Buffer.alloc(0);
     
     try {
-      // Connect video socket first
+      // scrcpy socket connection order: Video → Audio → Control
+      // (when audio is disabled, socket order is: Video → Control)
+      
+      // 1. Connect video socket first
       console.log(`[DeviceConnection] Connecting video socket to port ${this.port}...`);
       this.videoSocket = await this.createSocket('video');
       
-      // Wait a bit for scrcpy to prepare the next socket (increased to 300ms)
+      // Wait for scrcpy to prepare the next socket
       await new Promise(resolve => setTimeout(resolve, 300));
       
-      // Connect control socket
+      // 2. Connect audio socket (if enabled - comes BEFORE control)
+      // Note: Audio will only work if server has audio=true
+      // Skipped if audio disabled or device doesn't support it
+      console.log(`[DeviceConnection] Attempting audio socket to port ${this.port}...`);
+      try {
+        this.audioSocket = await this.createSocket('audio');
+        this.setupAudioSocket(this.audioSocket);
+        console.log(`[DeviceConnection] Audio socket connected`);
+      } catch (audioErr) {
+        console.warn(`[DeviceConnection] Audio socket unavailable (disabled or unsupported)`);
+        this.audioSocket = null;
+      }
+      
+      // Wait for scrcpy to prepare control socket
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      // 3. Connect control socket (always last)
       console.log(`[DeviceConnection] Connecting control socket to port ${this.port}...`);
       this.controlSocket = await this.createSocket('control');
       
       this.isConnected = true;
-      console.log(`[DeviceConnection] Both sockets connected to ${this.serial}`);
+      console.log(`[DeviceConnection] Connected to ${this.serial} (audio: ${!!this.audioSocket})`);
       
     } catch (error) {
       console.error(`[DeviceConnection] Connection failed:`, error);
@@ -81,11 +101,15 @@ export class DeviceConnection extends EventEmitter {
         this.controlSocket.destroy();
         this.controlSocket = null;
       }
+      if (this.audioSocket) {
+        this.audioSocket.destroy();
+        this.audioSocket = null;
+      }
       this.handleConnectionFailed(error as Error);
     }
   }
 
-  private createSocket(type: 'video' | 'control'): Promise<net.Socket> {
+  private createSocket(type: 'video' | 'control' | 'audio'): Promise<net.Socket> {
     return new Promise((resolve, reject) => {
       const socket = new net.Socket();
       socket.setNoDelay(true);
@@ -101,16 +125,16 @@ export class DeviceConnection extends EventEmitter {
         
         if (type === 'video') {
           this.setupVideoSocket(socket);
-        } else {
+        } else if (type === 'control') {
           this.setupControlSocket(socket);
         }
+        // Note: audio socket setup is done separately in connect()
         
         resolve(socket);
       });
 
       socket.on('error', (error) => {
         clearTimeout(connectTimeout);
-        // console.error(`[DeviceConnection] ${type} socket error:`, error.message);
         reject(error);
       });
     });
@@ -136,6 +160,78 @@ export class DeviceConnection extends EventEmitter {
     socket.on('close', () => {
       console.log(`[DeviceConnection] Control socket closed`);
     });
+  }
+
+  private audioBuffer: Buffer = Buffer.alloc(0);
+  private audioHandshakeComplete = false;
+  private audioPacketCount: number = 0;
+
+  private setupAudioSocket(socket: net.Socket): void {
+    socket.on('data', (data: Buffer) => {
+      this.handleAudioData(data);
+    });
+
+    socket.on('close', () => {
+      console.log(`[DeviceConnection] Audio socket closed`);
+    });
+  }
+
+  private handleAudioData(data: Buffer): void {
+    this.audioBuffer = Buffer.concat([this.audioBuffer, data]);
+    
+    // Robust handshake: find codec signature ('raw ', 'aac ', or 'opus')
+    // scrcpy metadata can be tricky (dummy byte, device name, then codec)
+    if (!this.audioHandshakeComplete) {
+      const signatures = ['raw', 'aac', 'opu']; // Use 3-char prefixes to be safe
+      let foundIdx = -1;
+      let signature = '';
+      
+      // Look deeper into the buffer (up to 256 bytes) to find the codec ID
+      for (const sig of signatures) {
+        const idx = this.audioBuffer.indexOf(sig);
+        if (idx >= 0 && idx < 256) {
+          foundIdx = idx;
+          signature = sig;
+          break;
+        }
+      }
+      
+      if (foundIdx !== -1) {
+        console.log(`[DeviceConnection] Audio handshake complete. Detected: "${signature}" at index ${foundIdx}`);
+        // Codec field is 4 bytes. Skip everything up to and including the 4-byte codec field.
+        this.audioBuffer = this.audioBuffer.subarray(foundIdx + 4);
+        this.audioHandshakeComplete = true;
+      } else if (this.audioBuffer.length > 256) {
+        // Safety: if we have lots of data but no handshake, we might be misaligned
+        console.warn('[DeviceConnection] Audio handshake not found in 256 bytes.');
+        console.log('[DeviceConnection] Buffer (hex):', this.audioBuffer.subarray(0, 64).toString('hex'));
+        console.log('[DeviceConnection] Buffer (string):', this.audioBuffer.subarray(0, 64).toString('ascii').replace(/[^\x20-\x7E]/g, '.'));
+        console.warn('[DeviceConnection] Emergency skip...');
+        this.audioHandshakeComplete = true;
+      } else {
+        return; // Wait for more data
+      }
+    }
+    
+    // Process packets (Header is 12 bytes: 8 bytes PTS + 4 bytes size)
+    while (this.audioBuffer.length >= 12) {
+      const packetSize = this.audioBuffer.readUint32BE(8);
+      
+      if (this.audioBuffer.length < 12 + packetSize) {
+        break; // Wait for more data
+      }
+      
+      // Extract raw payload (standardize to Buffer)
+      const payload = Buffer.from(this.audioBuffer.subarray(12, 12 + packetSize));
+      
+      if (payload.length > 0) {
+        this.audioPacketCount++;
+        this.emit('audio-data', payload);
+      }
+      
+      // Move buffer forward
+      this.audioBuffer = this.audioBuffer.subarray(12 + packetSize);
+    }
   }
 
   private handleVideoData(data: Buffer): void {
@@ -215,8 +311,11 @@ export class DeviceConnection extends EventEmitter {
     
     const nameBuffer = this.videoBuffer.subarray(1, 65);
     const nullIndex = nameBuffer.indexOf(0);
-    this.deviceName = nameBuffer.subarray(0, nullIndex > 0 ? nullIndex : 64).toString('utf8');
-    console.log(`[DeviceConnection] Device name: ${this.deviceName}`);
+    const name = nameBuffer.subarray(0, nullIndex >= 0 ? nullIndex : 64).toString('utf8');
+    if (!this.deviceName) {
+      this.deviceName = name;
+      console.log(`[DeviceConnection] Device name: ${this.deviceName}`);
+    }
     
     // Step 3: Codec info (12 bytes: codec_id u32, width u32, height u32)
     if (this.videoBuffer.length < 1 + 64 + 12) return;

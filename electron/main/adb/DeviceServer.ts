@@ -25,6 +25,8 @@ interface ServerOptions {
   sendDeviceMeta?: boolean;
   sendCodecMeta?: boolean;
   sendFrameMeta?: boolean;
+  audio?: boolean;
+  audioCodec?: 'aac' | 'opus' | 'raw';
 }
 
 // Default options matching scrcpy defaults
@@ -36,6 +38,8 @@ const DEFAULT_OPTIONS: Required<ServerOptions> = {
   sendDeviceMeta: true,
   sendCodecMeta: true,
   sendFrameMeta: true,
+  audio: true,         // Enable audio by default (Android 11+ required)
+  audioCodec: 'raw',   // Raw PCM - can play directly without decoding
 };
 
 // Active servers
@@ -114,7 +118,8 @@ export class DeviceServer {
       `scid=${scid.toString(16).padStart(8, '0')}`,
       'log_level=info',
       'video=true',
-      'audio=false',                   // Disable audio for now
+      `audio=${options.audio}`,
+      `audio_codec=${options.audioCodec}`,
       'control=true',
       `max_size=${options.maxSize}`,
       `max_fps=${options.maxFps}`,
@@ -164,7 +169,7 @@ export class DeviceServer {
 
     // Build and execute command
     const command = this.buildCommand(opts, scid);
-    console.log(`[DeviceServer] Starting on ${serial}: ${command}`);
+    console.log(`[DeviceServer] Starting scrcpy server for ${serial}:`, command);
 
     // Start server process (runs in background)
     const shellProcess = adbManager.spawnShell(serial, command);

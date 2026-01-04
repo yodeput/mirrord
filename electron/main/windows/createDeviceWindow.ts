@@ -18,6 +18,7 @@ export function createDeviceWindow(
     bitrateValue?: string
     resolution?: string
     decoder?: string
+    audioCodec?: string
   }
 ): BrowserWindow {
   if (deviceWindows.has(device.serial)) {
@@ -52,6 +53,7 @@ export function createDeviceWindow(
   if (options?.bitrateValue) params += `&bitrate=${encodeURIComponent(options.bitrateValue)}`
   if (options?.resolution) params += `&resolution=${encodeURIComponent(options.resolution)}`
   if (options?.decoder) params += `&decoder=${encodeURIComponent(options.decoder)}`
+  if (options?.audioCodec) params += `&audioCodec=${encodeURIComponent(options.audioCodec)}`
   
   if (VITE_DEV_SERVER_URL) {
     const url = new URL(VITE_DEV_SERVER_URL)
