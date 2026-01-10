@@ -1,6 +1,6 @@
 /* eslint-disable no-template-curly-in-string */
 
-const builder = require('electron-builder')
+import builder from 'electron-builder'
 
 /**
 * @type {import('electron-builder').Configuration}
@@ -10,13 +10,12 @@ const options = {
   appId: 'com.mirrord.desktop',
   productName: 'mirrord',
   directories: {
-    buildResources: 'resources',
-    output: 'out',
+    buildResources: 'build',
+    output: 'release',
   },
   files: [
     'dist/**/*',
-    'renderer/**/*',
-    'resources/**/*',
+    'dist-electron/**/*',
     '!node_modules/**/*'
   ],
   asar: true,
@@ -81,6 +80,7 @@ const linuxOptions = {
  */
 const macOptions = {
   mac: {
+    identity: null,
     icon: 'build/icons/icon.icns',
     category: 'public.app-category.productivity',
     target: ['dmg', 'zip'],
@@ -240,6 +240,12 @@ for (const param of process.argv.slice(2)) {
 if (params.target == null) throw new Error('Missing target')
 if (params.target != 'dir' && params.arch == null) throw new Error('Missing arch')
 if (params.target != 'dir' && params.type == null) throw new Error('Missing type')
+
+import { execSync } from 'child_process'
+
+// Run build first
+console.log('Running build...')
+execSync('npm run build', { stdio: 'inherit' })
 
 console.log(params.target, params.arch, params.type, params.publish ?? '')
 build(params.target, params.arch, params.type, params.publish)

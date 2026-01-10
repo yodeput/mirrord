@@ -38,4 +38,11 @@ Thumbs.db
 .env.development.local
 .env.test.local
 .env.production.local
-mirrord-tauri
+mirrord-taurinode_modules
+dist
+dist-electron
+release
+out
+*.log
+
+old-code
